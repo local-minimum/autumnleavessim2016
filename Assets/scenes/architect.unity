@@ -100,6 +100,7 @@ GameObject:
   - 224: {fileID: 91706759}
   - 222: {fileID: 91706761}
   - 114: {fileID: 91706760}
+  - 114: {fileID: 91706762}
   m_Layer: 5
   m_Name: MousePointer
   m_TagString: Untagged
@@ -158,6 +159,19 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 91706758}
+--- !u!114 &91706762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 91706758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3467bceec77c8de448639aa1d0a50c1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  centerCursor: {fileID: 91706760}
+  deactivateKey: 9
 --- !u!1 &976202185
 GameObject:
   m_ObjectHideFlags: 0
