@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
+public enum InteractionMode {Any, Build, Color, StateChange};
+
 public class UIPointLock : MonoBehaviour {
 
 	[SerializeField]
@@ -8,6 +10,15 @@ public class UIPointLock : MonoBehaviour {
 
 	[SerializeField]
 	KeyCode deactivateKey;
+
+	[SerializeField]
+	float maxDist = 10;
+
+	[SerializeField]
+	LayerMask layers;
+
+	[SerializeField]
+	InteractionMode iMode = InteractionMode.Any;
 
 	CursorLockMode releaseMode;
 	bool releaseVisibility;
@@ -27,6 +38,18 @@ public class UIPointLock : MonoBehaviour {
 	void Update() {
 		if (Input.GetKeyDown(deactivateKey)) { 	
 			this.enabled = false;
+		}
+		if (Input.GetMouseButtonUp (0)) {
+			MessageInteractionTarget ();
+		}
+	}
+
+	void MessageInteractionTarget() {
+		RaycastHit hit;
+		Ray r = Camera.main.ScreenPointToRay (new Vector3 (Screen.width / 2, Screen.height / 2));
+
+		if (Physics.Raycast (r, out hit, maxDist, layers)) {
+			hit.transform.gameObject.SendMessage ("OnInteraction", iMode, SendMessageOptions.DontRequireReceiver);
 		}
 	}
 }

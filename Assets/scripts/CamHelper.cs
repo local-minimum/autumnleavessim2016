@@ -24,15 +24,37 @@ public class CamHelper : MonoBehaviour {
 		get {
 			return height;
 		}
+
+		set {
+			height = value;
+			ResizeImage ();
+		}
 	}
 
 	public int Width {
 		get {
 			return width;
 		}
+
+		set {
+			width = value;
+			ResizeImage ();
+		}
 	}
 
-    void Awake() {
+
+	public void Reshape(int width, int height) {
+		this.width = width;
+		this.height = height;
+		ResizeImage ();
+	}
+
+	void Awake() {
+		ResizeImage ();
+	}
+
+    void ResizeImage() {
+		//TODO: Limit size if needed!
 		_tex = new Texture2D(width, height);
 		_sprite = Sprite.Create(_tex, new Rect(Vector2.zero, new Vector2(width, height)), Vector2.one * 0.5f);
 		_sprite.name = "WebCamImage";
@@ -50,11 +72,11 @@ public class CamHelper : MonoBehaviour {
 		}
 	}
 
-	public void RecordCamera() {
-		StartCoroutine (SnapImage ());
+	public void Snap(MonoBehaviour target) {
+		StartCoroutine (SnapImage (target));
 	}
 
-	IEnumerator<WaitForEndOfFrame> SnapImage() {
+	IEnumerator<WaitForEndOfFrame> SnapImage(MonoBehaviour target) {
 		WebCamTexture cTex = new WebCamTexture ();
 		cTex.Play ();
 		bool captured = false;
@@ -67,8 +89,11 @@ public class CamHelper : MonoBehaviour {
 				Copy (cTex);
 				cTex.Stop ();
 				captured = true;
-				if (OnNewImageRecorded != null)
+				if (target != null) {
+					target.SendMessage ("OnSnap", this, SendMessageOptions.DontRequireReceiver);
+				} else if (OnNewImageRecorded != null) {
 					OnNewImageRecorded (this);
+				}
 				
 			}
 		}
@@ -84,7 +109,7 @@ public class CamHelper : MonoBehaviour {
 	void Update() {
 
 		if (debugKey != KeyCode.None && Input.GetKeyUp (debugKey)) {
-			RecordCamera ();
+			Snap (null);
 		}
 	}
 }

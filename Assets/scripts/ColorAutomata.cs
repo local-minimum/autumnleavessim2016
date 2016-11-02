@@ -123,6 +123,13 @@ public class ColorAutomata : MonoBehaviour {
 	Image img;
 
 	Texture2D myTex;
+
+	public Texture2D Tex {
+		get {
+			return myTex;
+		}
+	}
+
 	Sprite mySprite;
 
 	[SerializeField, Range(1, 700)]
@@ -161,11 +168,14 @@ public class ColorAutomata : MonoBehaviour {
 	[SerializeField]
 	Color fillColor;
 
+	[SerializeField]
+	bool autoPaint = true;
+
 	void Start () {
 		img = GetComponent<Image> ();
 	}
 
-	void SetupImage(CamHelper camHelper) {
+	public void SetupImage(CamHelper camHelper) {
 		myTex = new Texture2D (camHelper.Width, camHelper.Height);
 		mySprite = Sprite.Create(
 			myTex, 
@@ -173,11 +183,15 @@ public class ColorAutomata : MonoBehaviour {
 			Vector2.one * 0.5f);
 		mySprite.name = "Color Dream";
 
-		img.sprite = mySprite;
+		if (img) {
+			img.sprite = mySprite;
+		}
 	}		
 
 	void OnEnable() {
-		CamHelper.OnNewImageRecorded += HandleCamImageRecorded;
+		if (autoPaint) {
+			CamHelper.OnNewImageRecorded += HandleCamImageRecorded;
+		}
 	}
 
 	void OnDisable() {
@@ -188,9 +202,14 @@ public class ColorAutomata : MonoBehaviour {
 		CamHelper.OnNewImageRecorded -= HandleCamImageRecorded;
 	}
 
+
+	void OnSnap(CamHelper camHelper) {
+		HandleCamImageRecorded (camHelper);
+	}
+
 	void HandleCamImageRecorded(CamHelper camHelper) {
 
-		if (img.sprite == null) {
+		if (myTex == null) {
 			SetupImage (camHelper);
 		}
 
