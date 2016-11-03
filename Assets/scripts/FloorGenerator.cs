@@ -122,6 +122,16 @@ public class FloorGenerator : MonoBehaviour {
 				
 		}
 
+		public IEnumerable<int> GetTris() {
+			//Expand to support non rect forms
+			yield return edges [0];
+			yield return edges [1];
+			yield return edges [3];
+			yield return edges [1];
+			yield return edges [2];
+			yield return edges [3];
+		}
+
 		public Room(int n) {
 			
 			active = true;
@@ -257,14 +267,7 @@ public class FloorGenerator : MonoBehaviour {
 				UVs.Add (new Vector2 (1f, 1f));
 				UVs.Add (new Vector2 (1f, -1f));
 
-				//tris.AddRange(newR.GetTris())
-				tris.Add (n);
-				tris.Add (n + 1);
-				tris.Add (n + 3);
-
-				tris.Add (n + 1);
-				tris.Add (n + 2);
-				tris.Add (n + 3);
+				tris.AddRange (newR.GetTris ());
 
 			}
 
