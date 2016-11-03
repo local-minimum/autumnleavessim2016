@@ -272,6 +272,7 @@ MonoBehaviour:
   stopAtArea: 150
   parent: {fileID: 0}
   mFilt: {fileID: 0}
+  upscaleSpeed: 1.05
 --- !u!4 &632717243
 Transform:
   m_ObjectHideFlags: 0
