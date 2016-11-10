@@ -81,23 +81,26 @@ public class FloorGenerator : MonoBehaviour {
 
 		public Vector3[] GetAttachmentPoints(int n, out int[] points, List<Vector3> verts) {
 
-			int s = Random.Range(0, freeSides.Sum (e => e ? 1 : 0));
-			List<int> sums = new List<int> (coreEdges);
+			int s = Random.Range(1, freeSides.Sum (e => e ? 1 : 0) + 1);
+
+            List<int> sums = new List<int> (coreEdges);
 			freeSides.Select (e => e ? 1 : 0).Aggregate(0, (sum, elem) => {sum += elem; sums.Add(sum); return sum;} );
 			int attachmentSide = sums.IndexOf (s);
 
-			freeSides [attachmentSide] = false;
+            freeSides[attachmentSide] = false;
 
 			bool attachToCorner = Random.value < 0.7f;
 			Vector3 a = verts [edges [attachmentSide]];
-			Vector3 b = verts [edges [attachmentSide + 1]];
+            int nextSide = attachmentSide < freeSides.Count - 1 ? attachmentSide + 1 : 0;
+
+            Vector3 b = verts [edges [nextSide]];
 
 			if (attachToCorner) {
 				
 				bool first = Random.value < 0.5f;
 
 				points = new int[2] {
-					first ? edges[attachmentSide + 1] : n,
+					first ? edges[nextSide] : n,
 					first ? n : edges [attachmentSide]
 				};
 
@@ -116,11 +119,31 @@ public class FloorGenerator : MonoBehaviour {
 				Vector3 a1 = Vector3.Lerp (a, b, Random.Range (0.1f, 0.4f));
 				return new Vector3[2] { 
 					Vector3.Lerp(a1, b, Random.Range(0.5f, 0.9f)),
-					a1
-				};
+                    a1,
+                };
 			}
 				
 		}
+
+        public IEnumerable<Vector2> GetUVs(List<Vector2> UVs)
+        {
+            //Same as the others...
+            yield return new Vector2(-1f, -1f);
+            yield return new Vector2(-1f, 1f);
+            yield return new Vector2(1f, 1f);
+            yield return new Vector2(1f, -1f);
+
+        }
+
+        public IEnumerable<Vector3> GetVerts(List<Vector3> verts)
+        {
+            //Expand to support non rect forms      
+            //Omit those that are not free, calc the others based on the connected.      
+            yield return new Vector3(-roomScale.x, 0, -roomScale.z);
+            yield return new Vector3(-roomScale.x, 0, roomScale.z);
+            yield return new Vector3(roomScale.x, 0, roomScale.z);
+            yield return new Vector3(roomScale.x, 0, -roomScale.z);
+        }
 
 		public IEnumerable<int> GetTris() {
 			//Expand to support non rect forms
@@ -221,7 +244,7 @@ public class FloorGenerator : MonoBehaviour {
 
 		List<Room> shapes = new List<Room> ();
 
-		int nShapes = Random.Range (1, 4);
+        int nShapes = 3; // Random.Range (1, 4);
 
 		Room baseRoom = new Room();
 
@@ -243,6 +266,7 @@ public class FloorGenerator : MonoBehaviour {
 					for (int i = 0; i < attachNs.Length; i++) {
 						if (attachNs [i] >= n) {
 							verts.Add (newV [i]);
+                            UVs.Add(new Vector2(-1, 1));
 						}
 					}
 
@@ -251,21 +275,9 @@ public class FloorGenerator : MonoBehaviour {
 				}
 
 				Room newR = shapes [shapes.Count - 1];
-				Vector3 scale = newR.roomScale;
 
-				//TODO: Room should have these enumerate
-				// verts.AddRange(newR.GetVerts(verts));
-
-				verts.Add (new Vector3 (-scale.x, 0, -scale.z));
-				verts.Add (new Vector3 (-scale.x, 0, scale.z));
-				verts.Add (new Vector3 (scale.x, 0, scale.z));
-				verts.Add (new Vector3 (scale.x, 0, -scale.z));
-
-				// UVs.AddRange(newR.GetUVs());
-				UVs.Add (new Vector2 (-1f, -1f));
-				UVs.Add (new Vector2 (-1f, 1f));
-				UVs.Add (new Vector2 (1f, 1f));
-				UVs.Add (new Vector2 (1f, -1f));
+				verts.AddRange(newR.GetVerts(verts));
+				UVs.AddRange(newR.GetUVs(UVs));
 
 				tris.AddRange (newR.GetTris ());
 
