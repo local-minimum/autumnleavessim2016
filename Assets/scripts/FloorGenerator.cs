@@ -317,9 +317,6 @@ public class FloorGenerator : MonoBehaviour {
 	[SerializeField, Range(1f, 2f)]
 	float upscaleSpeed = 1.7f;
 
-    [SerializeField]
-    Texture2D[] debugNumTex;       
-
 	Mesh mesh;
 
     List<Room> shapes = new List<Room>();
@@ -461,8 +458,6 @@ public class FloorGenerator : MonoBehaviour {
                     Gizmos.DrawWireSphere(pt, gScale);
                 }
 
-                //Vector2 spt = Camera.main.WorldToScreenPoint(pt);
-                //Gizmos.DrawGUITexture(new Rect(spt, new Vector2(100, 100)), debugNumTex[i]);
             }
         }
     }
