@@ -347,7 +347,7 @@ public class FloorGenerator : MonoBehaviour {
 
         shapes.Clear();		
 
-        int nShapes = 3; // Random.Range (1, 4);
+        int nShapes = Random.Range (2, 5);
 
 		Room baseRoom = new Room();
 
