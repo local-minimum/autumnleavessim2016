@@ -54,6 +54,12 @@ public class FloorGenerator : MonoBehaviour {
             return edges.Contains(edge);
         }
 
+        public bool HasBaseEdge(int edge)
+        {
+            int i = edges.IndexOf(edge);
+            return i >= 0 && i < coreEdges;
+        }
+
         private float area;
 
         public float Area {
@@ -367,6 +373,13 @@ public class FloorGenerator : MonoBehaviour {
 		StartCoroutine (_Build ());
 	}
 
+    public IEnumerable<List<Vector3>> GetShapeCorners(bool local = true)
+    {
+        foreach(Room shape in shapes)
+        {
+            yield return verts.Where((v, i) => shape.HasBaseEdge(i)).Select(v => local ? v : transform.TransformPoint(v)).ToList();
+        }
+    }
 
     public IEnumerable<Vector3> GetCircumferance(bool local = true) {
         if (!generated)
@@ -442,7 +455,7 @@ public class FloorGenerator : MonoBehaviour {
 
         shapes.Clear();		
 
-        int nShapes = Random.Range (2, 5);
+        int nShapes = Mathf.Min(5,  Random.Range (1, 3) + Random.Range(1, 3));
 
 		Room baseRoom = new Room(0);
         Room newR = baseRoom;

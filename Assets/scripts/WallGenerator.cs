@@ -14,6 +14,14 @@ public class WallGenerator : MonoBehaviour
     [SerializeField]
     float height = 2.4f;
 
+    public float Height
+    {
+        get
+        {
+            return height;
+        }
+    }
+
     bool generated = false;
     bool generating = false;
 
