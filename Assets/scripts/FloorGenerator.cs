@@ -233,24 +233,13 @@ public class FloorGenerator : MonoBehaviour {
         }
 
 		public IEnumerable<int> GetTris() {
-            if (true)
-            {
-                yield return edges[0];
-                yield return edges[1];
-                yield return edges[3];
-                yield return edges[1];
-                yield return edges[2];
-                yield return edges[3];
-            } /*else
-            {
-                yield return edges[0];
-                yield return edges[3];
-                yield return edges[1];
-                yield return edges[1];
-                yield return edges[3];
-                yield return edges[2];
-            }*/
 
+            yield return edges[0];
+            yield return edges[1];
+            yield return edges[3];
+            yield return edges[1];
+            yield return edges[2];
+            yield return edges[3];            
 		}
 
 		public Room(int n) {
@@ -317,7 +306,15 @@ public class FloorGenerator : MonoBehaviour {
 	[SerializeField, Range(1f, 2f)]
 	float upscaleSpeed = 1.7f;
 
-	Mesh mesh;
+    List<Vector3> verts = new List<Vector3>();
+    List<int> tris = new List<int>();
+    List<Vector2> UVs = new List<Vector2>();
+    float area;
+
+    bool generated = false;
+    bool generating = false;
+
+    Mesh mesh;
 
     List<Room> shapes = new List<Room>();
 
@@ -337,11 +334,20 @@ public class FloorGenerator : MonoBehaviour {
 	}
 
 	IEnumerator<WaitForSeconds> _Build() {
-		float area = 0;
 
-		List<Vector3> verts = new List<Vector3>();
-		List<int> tris = new List<int> ();
-		List<Vector2> UVs = new List<Vector2> ();
+        if (generating)
+        {
+            yield break;
+        }
+
+        generated = false;
+        generating = true;
+        verts.Clear();
+        UVs.Clear();
+        tris.Clear();
+
+        area = 0;
+
 		mesh.MarkDynamic ();
 		mesh.Clear ();
 
@@ -366,15 +372,14 @@ public class FloorGenerator : MonoBehaviour {
 
 					int[] attachIndices;
 					Vector3[] newV = baseRoom.GetAttachmentPoints (n, out attachIndices, verts);
-                    //int newVert = 0;
+                    
 					for (int i = 0; i < attachIndices.Length; i++) {
 						if (attachIndices [i] >= n) {
 							verts.Add (newV [i]);
-                            //newVert ++;
+                    
                             n++;
 						}
-					}
-                    //Debug.Log(string.Format("{0} attached, {1} new", attachIndices.Length, newVert));
+					}                    
 
 					shapes.Add (new Room (n, attachIndices));
 				}
@@ -417,8 +422,7 @@ public class FloorGenerator : MonoBehaviour {
 					r.RecalculateArea (verts);
 
 				}
-
-                //Debug.Log(r.Status);
+                
 				area += r.Area;
 
 			}
@@ -429,13 +433,12 @@ public class FloorGenerator : MonoBehaviour {
 			mesh.RecalculateBounds ();
 			mesh.RecalculateNormals ();
 
-            //if (shapes.Count == 2)
-            //    area = stopAtArea;
-
             yield return new WaitForSeconds (0.1f);
 
 		}
-		//mesh.UploadMeshData(false);
+
+        generated = true;
+        generating = false;
 	}
 
     void OnDrawGizmosSelected()
