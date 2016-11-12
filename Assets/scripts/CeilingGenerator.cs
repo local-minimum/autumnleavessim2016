@@ -13,9 +13,6 @@ public class CeilingGenerator : MonoBehaviour
     [SerializeField]
     float delay = 0.5f;
 
-    [SerializeField]
-    float height = 2.4f;
-
     bool generated = false;
     bool generating = false;
 

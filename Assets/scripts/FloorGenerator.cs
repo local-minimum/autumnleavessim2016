@@ -346,6 +346,9 @@ public class FloorGenerator : MonoBehaviour {
 	[SerializeField, Range(1f, 2f)]
 	float upscaleSpeed = 1.7f;
 
+    [SerializeField]
+    KeyCode regenKey;
+
     List<Vector3> verts = new List<Vector3>();
     List<int> tris = new List<int>();
     List<Vector2> UVs = new List<Vector2>();
@@ -376,6 +379,14 @@ public class FloorGenerator : MonoBehaviour {
 			StartCoroutine (_Build ());
 		}
 	}
+
+    void Update()
+    {
+        if (Input.GetKeyDown(regenKey))
+        {
+            StartCoroutine(_Build());
+        }
+    }
 
 	public void ReBuild() {
 		StartCoroutine (_Build ());

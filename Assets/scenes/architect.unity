@@ -102,7 +102,7 @@ GameObject:
   - 33: {fileID: 29193213}
   - 23: {fileID: 29193212}
   m_Layer: 0
-  m_Name: CielingSeed
+  m_Name: Ceiling
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -171,7 +171,6 @@ MonoBehaviour:
   floor: {fileID: 632717242}
   walls: {fileID: 1680138745}
   delay: 0.5
-  height: 2.4
 --- !u!1 &42625416
 GameObject:
   m_ObjectHideFlags: 0
@@ -335,7 +334,7 @@ GameObject:
   - 33: {fileID: 632717245}
   - 114: {fileID: 632717246}
   m_Layer: 0
-  m_Name: FloorSeed
+  m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -356,6 +355,7 @@ MonoBehaviour:
   parent: {fileID: 0}
   mFilt: {fileID: 0}
   upscaleSpeed: 1.2
+  regenKey: 102
 --- !u!4 &632717243
 Transform:
   m_ObjectHideFlags: 0
@@ -369,6 +369,7 @@ Transform:
   m_Children:
   - {fileID: 1680138744}
   - {fileID: 29193211}
+  - {fileID: 1707210024}
   m_Father: {fileID: 0}
   m_RootOrder: 5
 --- !u!23 &632717244
@@ -588,7 +589,7 @@ GameObject:
   - 33: {fileID: 1680138747}
   - 23: {fileID: 1680138746}
   m_Layer: 0
-  m_Name: WallSeed
+  m_Name: Walls
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -657,6 +658,49 @@ MeshFilter:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1680138743}
   m_Mesh: {fileID: 0}
+--- !u!1 &1707210023
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 1707210024}
+  - 114: {fileID: 1707210025}
+  m_Layer: 0
+  m_Name: RoomMaker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1707210024
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1707210023}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_Children: []
+  m_Father: {fileID: 632717243}
+  m_RootOrder: 2
+--- !u!114 &1707210025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1707210023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38463d22a3bc2af4db87f4b7b31d3a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: {fileID: 632717242}
+  walls: {fileID: 1680138745}
+  gridSize: 1
 --- !u!1 &1988446315
 GameObject:
   m_ObjectHideFlags: 0
