@@ -29,134 +29,233 @@ public static class EnumerableExtensions
 
 public class FloorGenerator : MonoBehaviour {
 
-	struct Room {
+    struct Room {
 
-		public Vector3 roomScale;
-		public bool active;
+        bool free;
+        public Vector3 roomScale;
+        public bool active;
 
-		List<bool> freeSides;
-		public List<int> edges;
-		public List<bool> freeEdges;
-		int coreEdges;
+        List<bool> freeSides;
+        public List<int> edges;
+        public List<bool> freeEdges;
+        int coreEdges;
 
-		private float area;
+        public bool Attatched
+        {
+            get
+            {
+                return !free;
+            }
+        }
 
-		public float Area {
-			get {
-				return area;
-			}
-		}
+        private float area;
 
-		public void RecalculateArea(List<Vector3> verts) {
-			Vector3 c = GetCenter(verts);
+        public float Area {
+            get {
+                return area;
+            }
+        }
 
-			Vector3[] pts = new Vector3[edges.Count];
-			float[] a = new float[pts.Length];
-			for (int i=0; i<pts.Length; i++) {
-				pts [i] = verts [edges [i]] - c;
-				a [i] = Mathf.Atan2 (pts [i].y, pts [i].x);
-			}
+        public string Status
+        {
+            get
+            {
+                return string.Format("{0} floor part ({1} m2), {2} scale",
+                    free ? "Base" : "Attached", area, roomScale);
+            }
+        }
+        public void RecalculateArea(List<Vector3> verts) {
+            Vector3 c = GetCenter(verts);
 
-			area = pts
-				.Select ((p, i) => new {p = p, angle = a [i]})
-				.OrderBy (x => x.angle)
-				.Select (x => x.p)
-				.Pairwise ((v1, v2) => Vector3.Cross(v1, v2))
-				.Sum (v => v.magnitude / 2f);
-		}
+            Vector3[] pts = new Vector3[edges.Count];
+            float[] a = new float[pts.Length];
+            for (int i = 0; i < pts.Length; i++) {
+                pts[i] = verts[edges[i]] - c;
+                a[i] = Mathf.Atan2(pts[i].y, pts[i].x);
+            }
 
-		public Vector3 GetCenter(List<Vector3> verts)
-		{
-			Vector3 c = Vector3.zero;
-			for (int i = 0, l = edges.Count; i < l; i++) {
-				c += verts[edges [i]];
-			}
-			return c / edges.Count;			
-		}
+            area = pts
+                .Select((p, i) => new { p = p, angle = a[i] })
+                .OrderBy(x => x.angle)
+                .Select(x => x.p)
+                .Pairwise((v1, v2) => Vector3.Cross(v1, v2))
+                .Sum(v => v.magnitude / 2f);
+        }
 
-		public void NewEdgeToControl(int n) {
-			edges.Add (n);
-			freeEdges.Add (true);
-		}
+        public Vector3 GetCenter(List<Vector3> verts)
+        {
+            Vector3 c = Vector3.zero;
+            for (int i = 0, l = edges.Count; i < l; i++) {
+                //Debug.Log(string.Format("{0}, {1}, {2}", i, edges[i], verts.Count));
+                c += verts[edges[i]];
+            }
+            return c / edges.Count;
+        }
 
-		public Vector3[] GetAttachmentPoints(int n, out int[] points, List<Vector3> verts) {
+        public void NewEdgeToControl(int n) {
+            edges.Add(n);
+            freeEdges.Add(true);
+        }
 
-			int s = Random.Range(1, freeSides.Sum (e => e ? 1 : 0) + 1);
+        public Vector3[] GetAttachmentPoints(int n, out int[] points, List<Vector3> verts) {
 
-            List<int> sums = new List<int> (coreEdges);
-			freeSides.Select (e => e ? 1 : 0).Aggregate(0, (sum, elem) => {sum += elem; sums.Add(sum); return sum;} );
-			int attachmentSide = sums.IndexOf (s);
+            int s = Random.Range(1, freeSides.Sum(e => e ? 1 : 0) + 1);
+
+            List<int> sums = new List<int>(coreEdges);
+            freeSides.Select(e => e ? 1 : 0).Aggregate(0, (sum, elem) => { sum += elem; sums.Add(sum); return sum; });
+            int attachmentSide = sums.IndexOf(s);
 
             freeSides[attachmentSide] = false;
 
-			bool attachToCorner = Random.value < 0.7f;
-			Vector3 a = verts [edges [attachmentSide]];
+            bool attachToCorner = Random.value < 0.7f;
+            Vector3 a = verts[edges[attachmentSide]];
             int nextSide = attachmentSide < freeSides.Count - 1 ? attachmentSide + 1 : 0;
 
-            Vector3 b = verts [edges [nextSide]];
+            Vector3 b = verts[edges[nextSide]];
 
-			if (attachToCorner) {
-				
-				bool first = Random.value < 0.5f;
+            if (attachToCorner) {
 
-				points = new int[2] {
-					first ? edges[nextSide] : n,
-					first ? n : edges [attachmentSide]
-				};
+                bool first = Random.value < 0.5f;
 
-				return new Vector3[2] {
-					first ? b  : Vector3.Lerp(a, b, Random.Range(0.1f, 0.5f)),
-					first ? Vector3.Lerp(a, b, Random.Range(0.5f, 0.9f)) : a
-				};
+                points = new int[2] {
+                    first ? edges[nextSide] : n,
+                    first ? n : edges [attachmentSide]
+                };
 
-			} else {
-				
-				points = new int[2] {
-					n,
-					n + 1
-				};
+                edges.Add(n);
+                freeEdges.Add(true);
 
-				Vector3 a1 = Vector3.Lerp (a, b, Random.Range (0.1f, 0.4f));
-				return new Vector3[2] { 
-					Vector3.Lerp(a1, b, Random.Range(0.5f, 0.9f)),
+                return new Vector3[2] {
+                    first ? b  : Vector3.Lerp(b, a, Random.Range(0.1f, 0.5f)),
+                    first ? Vector3.Lerp(b, a, Random.Range(0.5f, 0.9f)) : a
+                };
+
+            } else {
+
+                points = new int[2] {
+                    n,
+                    n + 1
+                };
+
+                edges.Add(n);
+                freeEdges.Add(true);
+                edges.Add(n + 1);
+                freeEdges.Add(true);
+
+                Vector3 a1 = Vector3.Lerp(a, b, Random.Range(0.1f, 0.4f));
+                return new Vector3[2] {
+                    Vector3.Lerp(a1, b, Random.Range(0.5f, 0.9f)),
                     a1,
                 };
-			}
-				
-		}
+            }
+
+        }
 
         public IEnumerable<Vector2> GetUVs(List<Vector2> UVs)
         {
-            //Same as the others...
-            yield return new Vector2(-1f, -1f);
-            yield return new Vector2(-1f, 1f);
-            yield return new Vector2(1f, 1f);
-            yield return new Vector2(1f, -1f);
+            int l = UVs.Count;
+            Vector2 uv = new Vector2(1f, 0f);
+            for (int i = 0, n = edges.Count; i < n; i++)
+            {
+                if (edges[i] < l)
+                {
+                    uv = UVs[edges[i]];
+                } else if (uv.x == 1 && uv.y == 0)
+                {
+                    uv = new Vector2(0, 0);
+                    yield return uv;
+                } else if (uv.x == 0 && uv.y == 0)
+                {
+                    uv = new Vector2(0, 1);
+                    yield return uv;
+                }
+                else if (uv.x == 0 && uv.y == 1)
+                {
+                    uv = new Vector2(1, 1);
+                    yield return uv;
+                }
+                else if (uv.x == 1 && uv.y == 1)
+                {
+                    uv = new Vector2(1, 0);
+                    yield return uv;
+                }
+            }
 
         }
 
         public IEnumerable<Vector3> GetVerts(List<Vector3> verts)
         {
             //Expand to support non rect forms      
-            //Omit those that are not free, calc the others based on the connected.      
-            yield return new Vector3(-roomScale.x, 0, -roomScale.z);
-            yield return new Vector3(-roomScale.x, 0, roomScale.z);
-            yield return new Vector3(roomScale.x, 0, roomScale.z);
-            yield return new Vector3(roomScale.x, 0, -roomScale.z);
+            if (free)
+            {
+                //Core rect
+                yield return new Vector3(-roomScale.x, 0, -roomScale.z);
+                yield return new Vector3(-roomScale.x, 0, roomScale.z);
+                yield return new Vector3(roomScale.x, 0, roomScale.z);
+                yield return new Vector3(roomScale.x, 0, -roomScale.z);
+            } else
+            {
+                //Attached rects
+
+                //Vector for first side;
+                Vector3 v = verts[edges[1]] - verts[edges[0]];
+
+                //CCW rotate pi/2
+                float a = roomScale.x / roomScale.z;                
+                Vector3 o = new Vector3(v.z / a, 0, -v.x * a);
+                //Debug.Log(string.Format("a {0}, ({1}, {2}", a, o.x, o.z));
+                yield return verts[edges[1]] + o;
+                yield return verts[edges[0]] + o;
+            }
+        }
+
+        public IEnumerable<KeyValuePair<int, Vector3>> GetFreeVerts(List<Vector3> verts)
+        {
+            Vector3 v = verts[edges[1]] - verts[edges[0]];
+            //CCW rotate pi/2
+            float a = roomScale.x / roomScale.z;
+            Vector3 o = new Vector3(v.z / a, 0, -v.x * a);
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (free)
+                {
+                    yield return new KeyValuePair<int, Vector3>(edges[i], verts[edges[i]]);
+                }
+                else
+                {
+                    if (freeEdges[i])
+                    {
+                        yield return new KeyValuePair<int, Vector3>(edges[i], verts[edges[(i + 1) % 2]] + o);
+                    }
+                }
+            }
         }
 
 		public IEnumerable<int> GetTris() {
-			//Expand to support non rect forms
-			yield return edges [0];
-			yield return edges [1];
-			yield return edges [3];
-			yield return edges [1];
-			yield return edges [2];
-			yield return edges [3];
+            if (true)
+            {
+                yield return edges[0];
+                yield return edges[1];
+                yield return edges[3];
+                yield return edges[1];
+                yield return edges[2];
+                yield return edges[3];
+            } /*else
+            {
+                yield return edges[0];
+                yield return edges[3];
+                yield return edges[1];
+                yield return edges[1];
+                yield return edges[3];
+                yield return edges[2];
+            }*/
+
 		}
 
 		public Room(int n) {
-			
+
+            free = true;
 			active = true;
 			edges = new List<int>();
 			freeEdges = new List<bool>();
@@ -169,7 +268,7 @@ public class FloorGenerator : MonoBehaviour {
 				freeSides.Add(true);
 			}
 
-			roomScale = new Vector3(1f, 0f, Random.Range(0.95f, 1.05f));
+			roomScale = new Vector3(1f, 0f, Random.Range(0.97f, 1.03f));
 			roomScale /= Mathf.Min(1f, roomScale.z);
 
 			area = 0;
@@ -177,6 +276,7 @@ public class FloorGenerator : MonoBehaviour {
 
 		public Room(int n, int[] oldCorners) {
 
+            free = false;
 			active = true;
 			edges = new List<int>();
 			freeEdges = new List<bool>();
@@ -190,9 +290,10 @@ public class FloorGenerator : MonoBehaviour {
 					freeEdges.Add(false);
 					freeSides.Add(i == 0);
 				} else {
-					edges.Add(n + i);
+					edges.Add(n);
 					freeEdges.Add(true);
 					freeSides.Add(true);
+                    n++;
 				}
 			}
 
@@ -216,9 +317,14 @@ public class FloorGenerator : MonoBehaviour {
 	[SerializeField, Range(1f, 2f)]
 	float upscaleSpeed = 1.7f;
 
+    [SerializeField]
+    Texture2D[] debugNumTex;       
+
 	Mesh mesh;
 
-	void Start () {
+    List<Room> shapes = new List<Room>();
+
+    void Start () {
 		mFilt = GetComponent<MeshFilter> ();
 		mesh = new Mesh ();
 		mesh.name = "ProcGen Floor";
@@ -242,7 +348,7 @@ public class FloorGenerator : MonoBehaviour {
 		mesh.MarkDynamic ();
 		mesh.Clear ();
 
-		List<Room> shapes = new List<Room> ();
+        shapes.Clear();		
 
         int nShapes = 3; // Random.Range (1, 4);
 
@@ -261,22 +367,24 @@ public class FloorGenerator : MonoBehaviour {
 					baseRoom = shapes [0];
 				} else {
 
-					int[] attachNs;
-					Vector3[] newV = baseRoom.GetAttachmentPoints (n, out attachNs, verts);
-					for (int i = 0; i < attachNs.Length; i++) {
-						if (attachNs [i] >= n) {
+					int[] attachIndices;
+					Vector3[] newV = baseRoom.GetAttachmentPoints (n, out attachIndices, verts);
+                    //int newVert = 0;
+					for (int i = 0; i < attachIndices.Length; i++) {
+						if (attachIndices [i] >= n) {
 							verts.Add (newV [i]);
-                            UVs.Add(new Vector2(-1, 1));
+                            //newVert ++;
+                            n++;
 						}
 					}
+                    //Debug.Log(string.Format("{0} attached, {1} new", attachIndices.Length, newVert));
 
-					//TODO: Make thees
-					shapes.Add (new Room (n, attachNs));
+					shapes.Add (new Room (n, attachIndices));
 				}
 
 				Room newR = shapes [shapes.Count - 1];
 
-				verts.AddRange(newR.GetVerts(verts));
+				verts.AddRange(newR.GetVerts(verts));                
 				UVs.AddRange(newR.GetUVs(UVs));
 
 				tris.AddRange (newR.GetTris ());
@@ -285,41 +393,78 @@ public class FloorGenerator : MonoBehaviour {
 
 			area = 0;
 
-			for (int s = 0; s < shapes.Count; s++) {
+            for (int s = 0; s < shapes.Count; s++) {
 
 				Room r = shapes [s];
 				if (r.active) {
 
-					Vector3 center = r.GetCenter (verts);
+                    if (r.Attatched)
+                    {
+                        foreach (KeyValuePair<int, Vector3> kvp in r.GetFreeVerts(verts))
+                        {
+                            verts[kvp.Key] = kvp.Value;
+                        }
+                    }
+                    else {
 
-					for (int i=0, l=r.edges.Count; i<l; i++) {
+                        Vector3 center = r.GetCenter(verts);
 
-						if (!r.freeEdges [i]) {
-							continue;
-						}
+                        for (int i = 0, l = r.edges.Count; i < l; i++)
+                        {
 
-						Vector3 v = verts [r.edges[i]] - center;
-						verts[r.edges[i]] = new Vector3(v.x * r.roomScale.x, 0, v.z * r.roomScale.z) * upscaleSpeed;
+                            Vector3 v = verts[r.edges[i]] - center;
+                            verts[r.edges[i]] = new Vector3(v.x * r.roomScale.x, 0, v.z * r.roomScale.z) * upscaleSpeed;
 
-					}
-
+                        }
+                    }
 					r.RecalculateArea (verts);
 
 				}
 
+                //Debug.Log(r.Status);
 				area += r.Area;
 
 			}
-
+            //Debug.Log(string.Format("{0} m2, {1} parts {2} verts {3} triangles", area, shapes.Count, verts.Count, tris.Count / 3));
 			mesh.SetVertices (verts);
 			mesh.SetTriangles (tris, 0);
 			mesh.SetUVs (0, UVs); 
 			mesh.RecalculateBounds ();
 			mesh.RecalculateNormals ();
 
-			yield return new WaitForSeconds (0.1f);
+            //if (shapes.Count == 2)
+            //    area = stopAtArea;
+
+            yield return new WaitForSeconds (0.1f);
 
 		}
 		//mesh.UploadMeshData(false);
 	}
+
+    void OnDrawGizmosSelected()
+    {
+        float gScale = 0.5f;
+        Color[] cornerColors = new Color[4] { Color.red, Color.green, Color.blue, Color.yellow };
+        foreach (Room r in shapes)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 pt = transform.TransformPoint(mesh.vertices[r.edges[i]]);
+                if (r.freeEdges[i])
+                {
+                    Gizmos.color = cornerColors[i];
+                    Gizmos.DrawWireCube(pt, Vector3.one * gScale);                    
+                }
+                else
+                {
+                    Gizmos.color = cornerColors[i];
+                    Gizmos.DrawWireSphere(pt, gScale);
+                }
+
+                //Vector2 spt = Camera.main.WorldToScreenPoint(pt);
+                //Gizmos.DrawGUITexture(new Rect(spt, new Vector2(100, 100)), debugNumTex[i]);
+            }
+        }
+    }
+
 }

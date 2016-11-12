@@ -272,7 +272,8 @@ MonoBehaviour:
   stopAtArea: 150
   parent: {fileID: 0}
   mFilt: {fileID: 0}
-  upscaleSpeed: 1.05
+  upscaleSpeed: 1.2
+  debugNumTex: []
 --- !u!4 &632717243
 Transform:
   m_ObjectHideFlags: 0
@@ -506,7 +507,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.02108566, g: 0.02146412, b: 0.022058845, a: 0}
+  m_BackGroundColor: {r: 0.31877163, g: 0.32062188, b: 0.32352942, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
