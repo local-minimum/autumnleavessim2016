@@ -42,6 +42,14 @@ public class FloorGenerator : MonoBehaviour {
         public List<bool> freeEdges;
         int coreEdges;
 
+        public int CoreEdges
+        {
+            get
+            {
+                return coreEdges;
+            }
+        }
+
         public bool Attached
         {
             get
@@ -377,7 +385,7 @@ public class FloorGenerator : MonoBehaviour {
     {
         foreach(Room shape in shapes)
         {
-            yield return verts.Where((v, i) => shape.HasBaseEdge(i)).Select(v => local ? v : transform.TransformPoint(v)).ToList();
+            yield return shape.edges.Where((e, i) => i < shape.CoreEdges).Select(v => local ? verts[v] : transform.TransformPoint(verts[v])).ToList();
         }
     }
 
