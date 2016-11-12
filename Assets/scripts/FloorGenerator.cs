@@ -29,23 +29,29 @@ public static class EnumerableExtensions
 
 public class FloorGenerator : MonoBehaviour {
 
-    struct Room {
+    class Room {
 
         bool free;
         public Vector3 roomScale;
         public bool active;
+
+        Dictionary<int, Room> attachments;
 
         List<bool> freeSides;
         public List<int> edges;
         public List<bool> freeEdges;
         int coreEdges;
 
-        public bool Attatched
+        public bool Attached
         {
             get
             {
                 return !free;
             }
+        }
+        public bool HasEdge(int edge)
+        {
+            return edges.Contains(edge);
         }
 
         private float area;
@@ -64,6 +70,7 @@ public class FloorGenerator : MonoBehaviour {
                     free ? "Base" : "Attached", area, roomScale);
             }
         }
+
         public void RecalculateArea(List<Vector3> verts) {
             Vector3 c = GetCenter(verts);
 
@@ -97,13 +104,30 @@ public class FloorGenerator : MonoBehaviour {
             freeEdges.Add(true);
         }
 
-        public Vector3[] GetAttachmentPoints(int n, out int[] points, List<Vector3> verts) {
+        public void Attach(int side, Room room)
+        {
+            attachments[side] = room;
+        }
+
+        public Room GetAttachment(int side)
+        {
+            if (attachments.Keys.Contains(side))
+            {
+                return attachments[side];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public Vector3[] GetAttachmentPoints(int n, out int[] points, out int attachmentSide, List<Vector3> verts) {
 
             int s = Random.Range(1, freeSides.Sum(e => e ? 1 : 0) + 1);
 
             List<int> sums = new List<int>(coreEdges);
             freeSides.Select(e => e ? 1 : 0).Aggregate(0, (sum, elem) => { sum += elem; sums.Add(sum); return sum; });
-            int attachmentSide = sums.IndexOf(s);
+            attachmentSide = sums.IndexOf(s);
 
             freeSides[attachmentSide] = false;
 
@@ -244,6 +268,7 @@ public class FloorGenerator : MonoBehaviour {
 
 		public Room(int n) {
 
+            attachments = new Dictionary<int, Room>();
             free = true;
 			active = true;
 			edges = new List<int>();
@@ -265,6 +290,7 @@ public class FloorGenerator : MonoBehaviour {
 
 		public Room(int n, int[] oldCorners) {
 
+            attachments = new Dictionary<int, Room>();
             free = false;
 			active = true;
 			edges = new List<int>();
@@ -314,6 +340,14 @@ public class FloorGenerator : MonoBehaviour {
     bool generated = false;
     bool generating = false;
 
+    public bool Generated
+    {
+        get
+        {
+            return generated;
+        }
+    }
+
     Mesh mesh;
 
     List<Room> shapes = new List<Room>();
@@ -332,6 +366,61 @@ public class FloorGenerator : MonoBehaviour {
 	public void ReBuild() {
 		StartCoroutine (_Build ());
 	}
+
+
+    public IEnumerable<Vector3> GetCircumferance(bool local = true) {
+        if (!generated)
+        {
+            yield break;
+        }
+
+        int baseN = 0;
+        Room baseRoom = shapes[0];
+
+        while (baseN < 4)
+        {
+            int e = baseRoom.edges[baseN];
+
+            yield return local ? verts[e] : transform.TransformPoint(verts[e]);
+
+            Room attachment = baseRoom.GetAttachment(baseN);
+            if (attachment != null)
+            {
+                int innerStart;
+                if (attachment.HasEdge(e))
+                {
+                    innerStart = attachment.edges.IndexOf(e) + 1;
+                }
+                else
+                {
+                    innerStart = 1;
+                }
+                for (int i = innerStart; i < 4; i++)
+                {
+                    e = attachment.edges[i];
+                    yield return local ? verts[e] : transform.TransformPoint(verts[e]);
+
+                    if (!attachment.freeEdges[i] && i != innerStart)
+                    { 
+                        if (baseRoom.HasEdge(e) && baseRoom.edges.IndexOf(e) < 4)
+                        {
+                            baseN++;
+                        }
+                        break;
+                    }
+                }
+                
+                if (baseRoom.edges.IndexOf(attachment.edges[0]) > 3)
+                {
+                    yield return local ? verts[attachment.edges[0]] : transform.TransformPoint(verts[attachment.edges[0]]);
+                }          
+                
+            }
+
+            baseN++;
+
+        }
+    }
 
 	IEnumerator<WaitForSeconds> _Build() {
 
@@ -355,7 +444,8 @@ public class FloorGenerator : MonoBehaviour {
 
         int nShapes = Random.Range (2, 5);
 
-		Room baseRoom = new Room();
+		Room baseRoom = new Room(0);
+        Room newR = baseRoom;
 
 		while (area < stopAtArea) {
 
@@ -368,10 +458,12 @@ public class FloorGenerator : MonoBehaviour {
 				if (count == 0) {
 					shapes.Add (new Room (n));
 					baseRoom = shapes [0];
+                    newR = baseRoom;
 				} else {
 
 					int[] attachIndices;
-					Vector3[] newV = baseRoom.GetAttachmentPoints (n, out attachIndices, verts);
+                    int attachmentSide;
+					Vector3[] newV = baseRoom.GetAttachmentPoints (n, out attachIndices, out attachmentSide, verts);
                     
 					for (int i = 0; i < attachIndices.Length; i++) {
 						if (attachIndices [i] >= n) {
@@ -379,16 +471,16 @@ public class FloorGenerator : MonoBehaviour {
                     
                             n++;
 						}
-					}                    
+					}
 
-					shapes.Add (new Room (n, attachIndices));
-				}
-
-				Room newR = shapes [shapes.Count - 1];
+                    newR = new Room(n, attachIndices);
+                    baseRoom.Attach(attachmentSide, newR);
+                    shapes.Add(newR);
+                       
+				}				
 
 				verts.AddRange(newR.GetVerts(verts));                
 				UVs.AddRange(newR.GetUVs(UVs));
-
 				tris.AddRange (newR.GetTris ());
 
 			}
@@ -400,7 +492,7 @@ public class FloorGenerator : MonoBehaviour {
 				Room r = shapes [s];
 				if (r.active) {
 
-                    if (r.Attatched)
+                    if (r.Attached)
                     {
                         foreach (KeyValuePair<int, Vector3> kvp in r.GetFreeVerts(verts))
                         {
