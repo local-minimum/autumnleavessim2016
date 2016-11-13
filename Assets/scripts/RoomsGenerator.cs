@@ -16,9 +16,8 @@ public class RoomsGenerator : MonoBehaviour {
     List<float> X = new List<float>();
     List<float> Z = new List<float>();
 
-    List<Vector3> concave = new List<Vector3>();
+    List<Vector3> nonConcave = new List<Vector3>();
     List<Vector3> convex = new List<Vector3>();
-    List<Vector3> linear = new List<Vector3>();
     List<List<Vector3>> wallLines = new List<List<Vector3>>();
 
     bool generated = false;
@@ -44,10 +43,9 @@ public class RoomsGenerator : MonoBehaviour {
         } else if (generated && !floor.Generated)
         {
             X.Clear();
-            Z.Clear();
-            linear.Clear();
+            Z.Clear();            
             convex.Clear();
-            concave.Clear();
+            nonConcave.Clear();
             wallLines.Clear();
             generated = false;
             generating = false;
@@ -56,7 +54,7 @@ public class RoomsGenerator : MonoBehaviour {
 
     IEnumerator<WaitForSeconds> _Build()
     {
-        int rooms = Mathf.Min(7, Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(1, 2));
+        int rooms = Mathf.Clamp(Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(2, 4), 4, 8);
 
         List<Vector3> permimeter = floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList();
         yield return new WaitForSeconds(0.2f);
@@ -69,14 +67,11 @@ public class RoomsGenerator : MonoBehaviour {
             if (rotation < -rotationThreshold) {
                 //Debug.Log(string.Format("{0}: convex", i));
                 convex.Add(pt);
-            } else if (rotation > rotationThreshold)
-            {
-                //Debug.Log(string.Format("{0}: concave", i));
-                concave.Add(pt);
             } else
             {
-                linear.Add(pt);
-            }
+                //Debug.Log(string.Format("{0}: concave", i));
+                nonConcave.Add(pt);
+            } 
         }
 
        
@@ -85,7 +80,7 @@ public class RoomsGenerator : MonoBehaviour {
         while (rooms > 0)
         {
             Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
-            if (convex.Count > 0 && Random.value < 0.05f) {
+            if (convex.Count > 0 && Random.value < 0.1f) {
 
                 Vector3 a = convex[0];
                 int idA = permimeter.IndexOf(a);
@@ -99,7 +94,7 @@ public class RoomsGenerator : MonoBehaviour {
                 for (int i=0; i<2; i++)
                 {
                     Vector3 pt;
-                    if (PointOnLine(a, directions[i], permimeter, out pt))
+                    if (RayInterceptsSegment(a, directions[i], permimeter, out pt))
                     {
                         List<Vector3> newWall = new List<Vector3>() { a, pt };
                         int testHit;
@@ -208,10 +203,76 @@ public class RoomsGenerator : MonoBehaviour {
                     }
                 }
 
-            } else
+            } else 
             {
-                Debug.Log("Out of options");
-                rooms = 0;
+
+                //Min length to divide
+                float shortestWall = 1.5f;
+                float longest = Mathf.Pow(shortestWall, 2);
+                int idLong = -1;
+                for (int i=0, l=permimeter.Count; i< l; i++)
+                {
+                    int nextI = (i + 1) % l;
+                    float len = (permimeter[nextI] - permimeter[i]).sqrMagnitude;
+                    if (len > longest)
+                    {
+                        longest = len;
+                        idLong = i;
+                    }
+
+                }
+
+                if (idLong >= 0)
+                {
+                    longest = Mathf.Sqrt(longest);
+                    float flexPos = longest - 2 * shortestWall;
+                    int nextI = (idLong + 1) % permimeter.Count;
+                    Vector3 pt = Vector3.Lerp(permimeter[idLong], permimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
+                    Vector3 d = (pt - permimeter[idLong]).normalized;
+                    //Rotate CW
+                    d = new Vector3(d.z, 0, -d.x);
+                    Vector3 ptB;
+                    Debug.Log(string.Format("{0} - {1}, {2}, d {3}", permimeter[idLong], permimeter[nextI], pt, d));
+                    
+                    if (RayInterceptsSegment(pt, d, permimeter, out ptB))
+                    {
+                        bool perim2Perim = true;
+                        Vector3 ptC;
+                        if (RayInterceptsSegment(pt, d, wallLines, out ptC))
+                        {
+                            if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
+                            {
+                                ptB = ptC;
+                                perim2Perim = false;
+                            }
+                        }
+
+                        if ((ptB - pt).magnitude > shortestWall)
+                        {
+                            wallLines.Add(new List<Vector3>() { pt, ptB });
+                            rooms--;
+                            permimeter.Insert(idLong + 1, pt);
+                            if (perim2Perim)
+                            {
+                                for (int i=0, l=permimeter.Count; i< l; i++)
+                                {
+                                    int j = (i + 1) % l;
+                                    if (PointOnSegment(permimeter[i], permimeter[j], ptB))
+                                    {
+                                        permimeter.Insert(i + 1, ptB);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else {
+                    Debug.Log("Out of options");
+                    rooms = 0;
+                }
+
+                yield return new WaitForSeconds(0.1f);
             }
             indx++;
         }
@@ -220,13 +281,8 @@ public class RoomsGenerator : MonoBehaviour {
         generating = false;
     }
 
-    bool PointOnLine(Vector3 source, Vector3 direction, List<Vector3> line, out Vector3 pt)
+    bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<Vector3> line, out Vector3 pt)
     {
-
-        Ray2D r = new Ray2D(new Vector2(source.x, source.z), new Vector2(direction.x, direction.z));
-        
-
-        float aD = Mathf.Atan2(direction.z, direction.x);
 
         for (int i=0, l=line.Count; i<l; i++)
         {
@@ -238,20 +294,18 @@ public class RoomsGenerator : MonoBehaviour {
                 continue;
             }
 
-            Vector3 v1 = q1 - source;
-            Vector3 v2 = q2 - source;
-            Vector3 v3 = new Vector3(-direction.z, 0, direction.x);
+            Vector3 v1 = source - q1;
+            Vector3 v2 = q2 - q1;
+            Vector3 v3 = direction;
 
             float t1 = Vector3.Cross(new Vector3(v2.x, v2.z), new Vector3(v1.x, v1.z)).magnitude / DotXZ(v2, v3);
             float t2 = DotXZ(v1, v3) / DotXZ(v2, v3);
-            if (t2 >= 0 && t2 < 1)
+            if (t2 >= 0 && t2 <= 1)
             {
                 if (t1 > 0)
                 {
-                    Debug.Log(t1);
-                    Debug.Log(t2);
 
-                    pt = Vector3.Lerp(q1, q2, 1 - t1);
+                    pt = Vector3.Lerp(q1, q2, t2);
                     return true;
                 }
             }
@@ -259,6 +313,28 @@ public class RoomsGenerator : MonoBehaviour {
 
         pt = Vector3.zero;
         return false;
+    }
+
+    bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt)
+    {
+        Vector3 closest = Vector3.zero;
+        float smallest = 0;
+        bool any = false;
+        foreach (List<Vector3> line in lines)
+        {
+            if (RayInterceptsSegment(source, direction, line, out pt))
+            {
+                if (!any || smallest > (pt - source).sqrMagnitude)
+                {
+                    closest = pt;
+                    smallest = (pt - source).sqrMagnitude;
+                    any = true;
+                }
+                
+            }
+        }
+        pt = closest;
+        return any;
     }
 
     float DotXZ(Vector3 lhs, Vector3 rhs)
@@ -269,6 +345,12 @@ public class RoomsGenerator : MonoBehaviour {
     bool PointInsideSegment(Vector3 a, Vector3 b, Vector3 pt)
     {
         return Sign(DotXZ(a - pt, b - pt)) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
+    }
+
+    bool PointOnSegment(Vector3 a, Vector3 b, Vector3 pt)
+    {
+        return Sign(DotXZ(a - pt, b - pt)) == 0 && pt.x <= Mathf.Max(a.x, b.x) && pt.x >= Mathf.Min(a.x, b.x) && pt.z <= Mathf.Max(a.z, b.z) && pt.z >= Mathf.Min(a.z, b.z);
+
     }
 
     int Sign(float v)
@@ -444,7 +526,7 @@ public class RoomsGenerator : MonoBehaviour {
         }
 
         Gizmos.color = Color.blue;
-        foreach(Vector3 v in concave)
+        foreach(Vector3 v in nonConcave)
         {
             Gizmos.DrawSphere(transform.TransformPoint(v), gizmoSize);
         }
