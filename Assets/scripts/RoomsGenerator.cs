@@ -220,7 +220,8 @@ public class RoomsGenerator : MonoBehaviour {
                 if (c > 0)
                 {
                     int v = Random.Range(0, c) + 1;
-                    
+
+                    //TODO: need to use also inner walls I thinks
 
                     List<int> sums = new List<int>();
                     lens.Aggregate(0, (sum, e) => { sum += e > longest ? 1 : 0; sums.Add(sum); return sum; });
