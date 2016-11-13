@@ -207,24 +207,26 @@ public class RoomsGenerator : MonoBehaviour {
             {
 
                 //Min length to divide
-                float shortestWall = 1.5f;
-                float longest = Mathf.Pow(shortestWall, 2);
-                int idLong = -1;
+                float shortestWall = 2f;
+                float longest = Mathf.Pow(shortestWall * 2, 2);
+                List<float> lens = new List<float>();
                 for (int i=0, l=permimeter.Count; i< l; i++)
                 {
                     int nextI = (i + 1) % l;
-                    float len = (permimeter[nextI] - permimeter[i]).sqrMagnitude;
-                    if (len > longest)
-                    {
-                        longest = len;
-                        idLong = i;
-                    }
-
+                    lens.Add((permimeter[nextI] - permimeter[i]).sqrMagnitude);
                 }
+                int c = lens.Where(e => e > longest).Count();
 
-                if (idLong >= 0)
+                if (c > 0)
                 {
-                    longest = Mathf.Sqrt(longest);
+                    int v = Random.Range(0, c) + 1;
+                    
+
+                    List<int> sums = new List<int>();
+                    lens.Aggregate(0, (sum, e) => { sum += e > longest ? 1 : 0; sums.Add(sum); return sum; });
+                    int idLong = sums.IndexOf(v);
+
+                    longest = Mathf.Sqrt(lens[idLong]);
                     float flexPos = longest - 2 * shortestWall;
                     int nextI = (idLong + 1) % permimeter.Count;
                     Vector3 pt = Vector3.Lerp(permimeter[idLong], permimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
@@ -232,7 +234,7 @@ public class RoomsGenerator : MonoBehaviour {
                     //Rotate CW
                     d = new Vector3(d.z, 0, -d.x);
                     Vector3 ptB;
-                    Debug.Log(string.Format("{0} - {1}, {2}, d {3}", permimeter[idLong], permimeter[nextI], pt, d));
+                    //Debug.Log(string.Format("{0} - {1}, {2}, d {3}", permimeter[idLong], permimeter[nextI], pt, d));
                     
                     if (RayInterceptsSegment(pt, d, permimeter, out ptB))
                     {
@@ -260,6 +262,7 @@ public class RoomsGenerator : MonoBehaviour {
                                     if (PointOnSegment(permimeter[i], permimeter[j], ptB))
                                     {
                                         permimeter.Insert(i + 1, ptB);
+                                        Debug.Log("Inserted perim to perim");
                                         break;
                                     }
                                 }
