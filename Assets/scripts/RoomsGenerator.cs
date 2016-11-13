@@ -30,8 +30,9 @@ public class RoomsGenerator : MonoBehaviour {
     [SerializeField]
     float wallGizmoYOffset = 0.1f;
 
+    float rotationThreshold = 0.0001f;
+
     void Start () {
-	
 	}
 
     void Update () {
@@ -44,6 +45,10 @@ public class RoomsGenerator : MonoBehaviour {
         {
             X.Clear();
             Z.Clear();
+            linear.Clear();
+            convex.Clear();
+            concave.Clear();
+            wallLines.Clear();
             generated = false;
             generating = false;
         }
@@ -54,76 +59,205 @@ public class RoomsGenerator : MonoBehaviour {
         int rooms = Mathf.Min(7, Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(1, 2));
 
         List<Vector3> permimeter = floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList();
-
-        linear.Clear();
-        convex.Clear();
-        concave.Clear();
-        wallLines.Clear();
-
+        yield return new WaitForSeconds(0.2f);
         for (int i=0, l=permimeter.Count; i< l; i++)
         {            
             Vector3 pt = permimeter[i];
-            Vector3 rhs = permimeter[(l + i - 1) % l] - pt;
+            Vector3 rhs = pt - permimeter[(l + i - 1) % l];
             Vector3 lhs = permimeter[(i + 1) % l] - pt;
             float rotation = DotXZ(lhs, rhs);
-
-            if (rotation == 0) {
-                //Debug.Log(string.Format("{0}: linear", i));
-                linear.Add(pt);
-            } else if (rotation > 0) {
+            if (rotation < -rotationThreshold) {
                 //Debug.Log(string.Format("{0}: convex", i));
                 convex.Add(pt);
-            } else {
+            } else if (rotation > rotationThreshold)
+            {
                 //Debug.Log(string.Format("{0}: concave", i));
                 concave.Add(pt);
+            } else
+            {
+                linear.Add(pt);
             }
         }
 
        
-        yield return new WaitForSeconds(0.01f);
-
-        if (convex.Count >= 2)
+        yield return new WaitForSeconds(0.1f);
+        int indx = 0;
+        while (rooms > 0)
         {
-            //TODO: Make interesting selection
+            Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
+            if (convex.Count > 0 && Random.value < 0.3f) {
 
-            Vector3 a1 = convex[0];
-            Vector3 a2 = convex[1];
+                Vector3 a = convex[0];
+                int idA = permimeter.IndexOf(a);
 
-            List<List<Vector3>> testPaths = new List<List<Vector3>>();
+                List<Vector3> directions = new List<Vector3>() {
+                    (a - permimeter[(permimeter.Count + (idA - 1)) % permimeter.Count]).normalized,
+                    (permimeter[(idA + 1) % permimeter.Count] - a).normalized
+                };
 
-            if (a1.x == a2.x || a1.z == a2.z)
+                bool madeRoom = false;
+                for (int i=0; i<2; i++)
+                {
+                    Vector3 pt;
+                    if (PointOnLine(a, directions[i], permimeter, out pt))
+                    {
+                        List<Vector3> newWall = new List<Vector3>() { a, pt };
+                        int testHit;
+                        int wallHit;
+                        int wallsHit;
+                        if (!CollidesWith(newWall, wallLines, out testHit, out wallHit, out wallsHit))
+                        {
+                            if (wallLines.Contains(newWall))
+                            {
+                                Debug.LogWarning("Dupe wall");
+                            }
+                            else
+                            {
+                                Debug.Log(string.Format("Added simple wall {0} {1}", newWall[0], newWall[1]));
+                                madeRoom = true;
+                                wallLines.Add(newWall);
+                                rooms--;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!madeRoom)
+                {
+                    convex.Remove(a);
+                }
+                yield return new WaitForSeconds(0.1f);
+            }
+            else if (convex.Count > 0)
             {
-                testPaths.Add(new List<Vector3>() { a1, a2 });
+                yield return new WaitForSeconds(0.2f);
+                indx %= convex.Count;
+                Vector3 a1 = convex[indx];
+                Vector3 a2 = convex[(indx + Random.Range(1, convex.Count - 1)) % convex.Count];
+
+                List<List<Vector3>> testPaths = new List<List<Vector3>>();
+
+                if (a1.x == a2.x || a1.z == a2.z)
+                {
+                    testPaths.Add(new List<Vector3>() { a1, a2 });
+
+                }
+                else
+                {
+                    Vector3[] c = new Vector3[2] { new Vector3(a1.x, 0, a2.z), new Vector3(a2.x, 0, a1.z) };
+                    for (int i = 0; i < 2; i++)
+                    {
+                        testPaths.Add(new List<Vector3>() { a1, c[i], a2 });
+                    }
+                }
+
+                bool madeRoom = false;
+                for (int i = 0, l = testPaths.Count; i < l; i++)
+                {
+                    List<Vector3> newWall = testPaths[i];
+                    int testIndex;
+                    int pathIndex;
+
+                    if (CollidesWith(newWall, permimeter, out testIndex, out pathIndex))
+                    {
+                        Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
+                    }
+                    else
+                    {
+                        int pathsIndex;
+                        if (CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
+                        {
+                            Debug.Log("Collieds with inner wall");
+                        }
+                        else {
+                            Debug.Log("Inner wall allowed");
+                            if (wallLines.Contains(newWall)) {
+                                Debug.LogWarning("Dupe wall");
+                            }
+                            else {
+                                Debug.Log(string.Format("Added curved wall {0} {1}", newWall.Count, newWall[0]));
+                                wallLines.Add(newWall);
+                                madeRoom = true;
+                                rooms--;
+                                if (newWall.Count == 3)
+                                {
+                                    convex.Add(newWall[1]);
+                                }
+                                if (Random.value < 0.5f)
+                                {
+                                    convex.Remove(newWall.First());
+                                }
+                                else {
+                                    convex.Remove(newWall.Last());
+                                }
+                                yield return new WaitForSeconds(0.5f);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!madeRoom)
+                {
+                    if (Random.value < 0.5f)
+                    {
+                        convex.Remove(a1);
+                    } else
+                    {
+                        convex.Remove(a2);
+                    }
+                }
 
             } else
             {
-                Vector3[] c = new Vector3[2] { new Vector3(a1.x, 0, a2.z), new Vector3(a2.x, 0, a1.z) };
-                for (int i = 0; i < 2; i++)
-                {
-                    testPaths.Add(new List<Vector3>() { a1, c[i], a2 });
-                }
+                Debug.Log("Out of options");
+                rooms = 0;
             }
-
-            for (int i = 0, l=testPaths.Count; i < l; i++)
-            {
-                List<Vector3> testPath = testPaths[i];
-                int testIndex;
-                int pathIndex;
-
-                if (CollidesWith(testPath, permimeter, out testIndex, out pathIndex))
-                {
-                    Debug.Log(string.Format("Inner wall {0} {1} collides at ({3} | {4})", testPath[testIndex], testPath[testIndex + 1], testIndex, pathIndex));
-                } else
-                {
-                    Debug.Log(string.Format("Inner wall allowed"));
-                    wallLines.Add(testPath);
-                    break;
-                }
-            }
+            indx++;
         }
 
         generated = true;
         generating = false;
+    }
+
+    bool PointOnLine(Vector3 source, Vector3 direction, List<Vector3> line, out Vector3 pt)
+    {
+
+        Ray2D r = new Ray2D(new Vector2(source.x, source.z), new Vector2(direction.x, direction.z));
+        
+
+        float aD = Mathf.Atan2(direction.z, direction.x);
+
+        for (int i=0, l=line.Count; i<l; i++)
+        {
+            Vector3 q1 = line[i];
+            Vector3 q2 = line[(i + 1) % l];
+            if (source == q1 || source == q2 || PointInsideSegment(q1, q2, source))
+            {
+                //Not interested in source on line
+                continue;
+            }
+
+            Vector3 v1 = q1 - source;
+            Vector3 v2 = q2 - source;
+            Vector3 v3 = new Vector3(-direction.z, 0, direction.x);
+
+            float t1 = Vector3.Cross(new Vector3(v2.x, v2.z), new Vector3(v1.x, v1.z)).magnitude / DotXZ(v2, v3);
+            float t2 = DotXZ(v1, v3) / DotXZ(v2, v3);
+            if (t2 >= 0 && t2 < 1)
+            {
+                if (t1 > 0)
+                {
+                    Debug.Log(t1);
+                    Debug.Log(t2);
+
+                    pt = Vector3.Lerp(q1, q2, 1 - t1);
+                    return true;
+                }
+            }
+        }
+
+        pt = Vector3.zero;
+        return false;
     }
 
     float DotXZ(Vector3 lhs, Vector3 rhs)
@@ -136,6 +270,20 @@ public class RoomsGenerator : MonoBehaviour {
         return DotXZ(a - pt, b - pt) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
     }
 
+    int Sign(float v)
+    {
+        if (v < -rotationThreshold)
+        {
+            return -1;
+        } else if (v > rotationThreshold)
+        {
+            return 1;
+        } else
+        {
+            return 0;
+        }
+    }
+
     bool CollidesWith(Vector3 p1, Vector3 p2, List<Vector3> referencePath, out int index)
     {
         for (int i = 0, l = referencePath.Count - 1; i < l; i++)
@@ -143,22 +291,38 @@ public class RoomsGenerator : MonoBehaviour {
             Vector3 q1 = referencePath[i];
             Vector3 q2 = referencePath[i + 1];
 
-            float aP1P2Q1 = DotXZ(p1 - p2, q1 - p2);
-            float aP1P2Q2 = DotXZ(p1 - p2, q2 - p2);
+            float aP1P2Q1 = Sign(DotXZ(p1 - p2, q1 - p2));
+            float aP1P2Q2 = Sign(DotXZ(p1 - p2, q2 - p2));
 
-            float aQ1Q2P1 = DotXZ(q1 - q2, p1 - q2);
-            float aQ1Q2P2 = DotXZ(q1 - q2, p2 - q2);
+            float aQ1Q2P1 = Sign(DotXZ(q1 - q2, p1 - q2));
+            float aQ1Q2P2 = Sign(DotXZ(q1 - q2, p2 - q2));
+
+            //Debug.Log(string.Format("Rotations {0} {1} {2} {3}", aP1P2Q1, aP1P2Q2, aQ1Q2P1, aQ1Q2P2));
 
             if (aP1P2Q1 != aP1P2Q2 && aQ1Q2P1 != aQ1Q2P2)
             {
+                //Debug.Log("Angle intercept");    
                 index = i;
                 return true;
 
             }
-            else if (aP1P2Q1 == 0 && aP1P2Q2 == 0 && aQ1Q2P1 == 0 && aQ1Q2P2 == 0 && (PointInsideSegment(q1, q2, p1) || PointInsideSegment(q1, q2, p2)))
+            else if (aP1P2Q1 == 0 && aP1P2Q2 == 0 && aQ1Q2P1 == 0 && aQ1Q2P2 == 0)
             {
-                index = i;
-                return true;
+                //Debug.Log("Inline point");
+                if (PointInsideSegment(q1, q2, p1) || PointInsideSegment(q1, q2, p2))
+                {
+                    //Debug.Log(string.Format("Linear intercept {0} ({1} {2} {3}), {4} ({5} {6} {7})", PointInsideSegment(q1, q2, p1), q1, q2, p1, PointInsideSegment(q1, q2, p2), q1, q2, p2));
+                    index = i;
+                    return true;
+                } else
+                {
+                    if (p1 == q1 && p2 == q2 || p1 == q2 && p2 == q1)
+                    {
+                        //Debug.Log(string.Format("Identical lines"));
+                        index = i;
+                        return true;
+                    }
+                }
             }
 
         }
@@ -252,28 +416,27 @@ public class RoomsGenerator : MonoBehaviour {
     {
         Gizmos.color = Color.magenta;
 
-        if (Z.Count == 0 || X.Count == 0)
+        if (generating && Z.Count != 0 && X.Count != 0)
         {
-            return;
-        }
 
-        float zMin = Z.Min();
-        float zMax = Z.Max();
-        float xMin = X.Min();
-        float xMax = X.Max();
+            float zMin = Z.Min();
+            float zMax = Z.Max();
+            float xMin = X.Min();
+            float xMax = X.Max();
 
-        foreach(float x in X)
-        {
-            Gizmos.DrawLine(
-                transform.TransformPoint(new Vector3(x, 0, zMin)),
-                transform.TransformPoint(new Vector3(x, 0, zMax)));
-        }
+            foreach (float x in X)
+            {
+                Gizmos.DrawLine(
+                    transform.TransformPoint(new Vector3(x, 0, zMin)),
+                    transform.TransformPoint(new Vector3(x, 0, zMax)));
+            }
 
-        foreach(float z in Z)
-        {
-            Gizmos.DrawLine(
-                transform.TransformPoint(new Vector3(xMin, 0, z)),
-                transform.TransformPoint(new Vector3(xMax, 0, z)));
+            foreach (float z in Z)
+            {
+                Gizmos.DrawLine(
+                    transform.TransformPoint(new Vector3(xMin, 0, z)),
+                    transform.TransformPoint(new Vector3(xMax, 0, z)));
+            }
         }
 
         Gizmos.color = Color.blue;

@@ -701,6 +701,8 @@ MonoBehaviour:
   floor: {fileID: 632717242}
   walls: {fileID: 1680138745}
   gridSize: 1
+  gizmoSize: 0.2
+  wallGizmoYOffset: 0.1
 --- !u!1 &1988446315
 GameObject:
   m_ObjectHideFlags: 0
