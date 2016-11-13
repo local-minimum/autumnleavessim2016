@@ -85,7 +85,7 @@ public class RoomsGenerator : MonoBehaviour {
         while (rooms > 0)
         {
             Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
-            if (convex.Count > 0 && Random.value < 0.3f) {
+            if (convex.Count > 0 && Random.value < 0.05f) {
 
                 Vector3 a = convex[0];
                 int idA = permimeter.IndexOf(a);
@@ -128,19 +128,20 @@ public class RoomsGenerator : MonoBehaviour {
                 }
                 yield return new WaitForSeconds(0.1f);
             }
-            else if (convex.Count > 0)
+            else if (convex.Count > 1)
             {
                 yield return new WaitForSeconds(0.2f);
                 indx %= convex.Count;
                 Vector3 a1 = convex[indx];
-                Vector3 a2 = convex[(indx + Random.Range(1, convex.Count - 1)) % convex.Count];
-
+                int indx2 = (indx + Random.Range(1, convex.Count - 1)) % convex.Count;
+                Vector3 a2 = convex[indx2];
+                //Debug.Log(string.Format("Using indices {0} {1} ({2})", indx, indx2, convex.Count));
                 List<List<Vector3>> testPaths = new List<List<Vector3>>();
 
                 if (a1.x == a2.x || a1.z == a2.z)
                 {
                     testPaths.Add(new List<Vector3>() { a1, a2 });
-
+                    //Debug.Log(string.Format("Test simple wall {0} {1}", a1, a2));
                 }
                 else
                 {
@@ -167,7 +168,7 @@ public class RoomsGenerator : MonoBehaviour {
                         int pathsIndex;
                         if (CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
                         {
-                            Debug.Log("Collieds with inner wall");
+                            Debug.Log("Collides with inner wall");
                         }
                         else {
                             Debug.Log("Inner wall allowed");
@@ -175,7 +176,7 @@ public class RoomsGenerator : MonoBehaviour {
                                 Debug.LogWarning("Dupe wall");
                             }
                             else {
-                                Debug.Log(string.Format("Added curved wall {0} {1}", newWall.Count, newWall[0]));
+                                Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
                                 wallLines.Add(newWall);
                                 madeRoom = true;
                                 rooms--;
@@ -190,7 +191,7 @@ public class RoomsGenerator : MonoBehaviour {
                                 else {
                                     convex.Remove(newWall.Last());
                                 }
-                                yield return new WaitForSeconds(0.5f);
+                                yield return new WaitForSeconds(0.2f);
                                 break;
                             }
                         }
@@ -267,7 +268,7 @@ public class RoomsGenerator : MonoBehaviour {
 
     bool PointInsideSegment(Vector3 a, Vector3 b, Vector3 pt)
     {
-        return DotXZ(a - pt, b - pt) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
+        return Sign(DotXZ(a - pt, b - pt)) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
     }
 
     int Sign(float v)
@@ -301,9 +302,12 @@ public class RoomsGenerator : MonoBehaviour {
 
             if (aP1P2Q1 != aP1P2Q2 && aQ1Q2P1 != aQ1Q2P2)
             {
-                //Debug.Log("Angle intercept");    
-                index = i;
-                return true;
+                if (p1 != q1 && p1 != q2 && p2 != q1 && p2 != q2)
+                {
+                    //Debug.Log("Angle intercept");
+                    index = i;
+                    return true;
+                }
 
             }
             else if (aP1P2Q1 == 0 && aP1P2Q2 == 0 && aQ1Q2P1 == 0 && aQ1Q2P2 == 0)
