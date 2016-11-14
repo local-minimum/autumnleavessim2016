@@ -46,7 +46,7 @@ public class SpawnPlace : MonoBehaviour {
             Vector3 v1 = compartment[1] - compartment[0];
             Vector3 v2 = compartment[2] - compartment[1];
 
-            Vector3 c = compartment.Aggregate(Vector3.zero, (sum, e) => sum + e) / compartment.Count;
+            //Vector3 c = compartment.Aggregate(Vector3.zero, (sum, e) => sum + e) / compartment.Count;
 
             Vector3 pt = compartment[0] + Random.value * v1 + Random.value * v2;
             

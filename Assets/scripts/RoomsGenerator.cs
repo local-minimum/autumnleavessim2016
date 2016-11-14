@@ -44,7 +44,7 @@ public class RoomsGenerator : MonoBehaviour {
     List<Vector3> verts = new List<Vector3>();
     List<Vector2> UVs = new List<Vector2>();
     List<int> tris = new List<int>();
-    List<Vector3> corners = new List<Vector3>();
+    
     Mesh mesh;
 
     void Start()
@@ -283,13 +283,11 @@ public class RoomsGenerator : MonoBehaviour {
                     float flexPos = longest - 2 * shortestWall;
                     int nextI = (idLong + 1) % perimeter.Count;
                     Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
-
-                    Vector3 d = (pt - perimeter[idLong]).normalized;
-                    //Rotate CW
-                    d = new Vector3(d.z, 0, -d.x);
+                    
+                    Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
 
                     Vector3 ptB;
-                    //Debug.Log(string.Format("{0} - {1}, {2}, d {3}", permimeter[idLong], permimeter[nextI], pt, d));
+                    Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
                     
                     if (ProcGenHelpers.RayInterceptsSegment(pt, d, perimeter, out ptB))
                     {
@@ -297,6 +295,7 @@ public class RoomsGenerator : MonoBehaviour {
                         Vector3 ptC;
                         if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC))
                         {
+                            Debug.Log("Wall construction intercept inner wall");
                             if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
                             {
                                 ptB = ptC;
