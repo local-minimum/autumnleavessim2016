@@ -339,8 +339,7 @@ public class FloorGenerator : MonoBehaviour {
 
 	[SerializeField]
 	FloorGenerator parent;
-
-	[SerializeField]
+	
 	MeshFilter mFilt;
 
 	[SerializeField, Range(1f, 2f)]
@@ -374,6 +373,12 @@ public class FloorGenerator : MonoBehaviour {
 		mesh = new Mesh ();
 		mesh.name = "ProcGen Floor";
 		mFilt.mesh = mesh;
+
+        MeshCollider mCol = GetComponent<MeshCollider>();
+        if (mCol != null)
+        {
+            mCol.sharedMesh = mesh;
+        }
 
 		if (parent == null) {
 			StartCoroutine (_Build ());
@@ -451,6 +456,14 @@ public class FloorGenerator : MonoBehaviour {
 
             baseN++;
 
+        }
+    }
+
+    public IEnumerable<List<Vector3>> GetPartialFloorRects(bool local=true)
+    {
+        foreach(Room r in shapes)
+        {            
+            yield return r.edges.Where((e, i) => i < r.CoreEdges).Select(e => local ? verts[e] : transform.TransformPoint(verts[e])).ToList();
         }
     }
 

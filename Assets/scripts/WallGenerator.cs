@@ -37,6 +37,11 @@ public class WallGenerator : MonoBehaviour
         mesh = new Mesh();
         mesh.name = "ProcGen Walls";
         mFilt.mesh = mesh;
+        MeshCollider mCol = GetComponent<MeshCollider>();
+        if (mCol != null)
+        {
+            mCol.sharedMesh = mesh;
+        }
         StartCoroutine(_Build());
     }
 
@@ -60,7 +65,7 @@ public class WallGenerator : MonoBehaviour
                         corner = -1;
                         generating = true;
 
-                        Debug.Log(string.Format("{0} Corners to make walls on", corners.Count));
+                        //Debug.Log(string.Format("{0} Corners to make walls on", corners.Count));
                     }
 
                     corner++;

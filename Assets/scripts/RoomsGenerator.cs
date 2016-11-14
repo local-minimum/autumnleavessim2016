@@ -24,6 +24,14 @@ public class RoomsGenerator : MonoBehaviour {
     bool generated = false;
     bool generating = false;
 
+    public bool Generated
+    {
+        get
+        {
+            return generated;
+        }
+    }
+
     [SerializeField]
     float gizmoSize = 0.2f;
 
@@ -32,8 +40,7 @@ public class RoomsGenerator : MonoBehaviour {
 
     [SerializeField]
     float wallThickness = 0.1f;
-
-    float rotationThreshold = 0.0001f;
+    
     List<Vector3> verts = new List<Vector3>();
     List<Vector2> UVs = new List<Vector2>();
     List<int> tris = new List<int>();
@@ -46,7 +53,11 @@ public class RoomsGenerator : MonoBehaviour {
         mesh = new Mesh();
         mesh.name = "ProcGen Walls";
         mFilt.mesh = mesh;
-
+        MeshCollider mCol = GetComponent<MeshCollider>();
+        if (mCol != null)
+        {
+            mCol.sharedMesh = mesh;
+        }
     }
 
     void Update () {
@@ -83,8 +94,8 @@ public class RoomsGenerator : MonoBehaviour {
             Vector3 pt = perimeter[i];
             Vector3 rhs = pt - perimeter[(l + i - 1) % l];
             Vector3 lhs = perimeter[(i + 1) % l] - pt;
-            float rotation = DotXZ(lhs, rhs);
-            if (rotation < -rotationThreshold) {
+            int rotation = ProcGenHelpers.XZRotation(lhs, rhs);
+            if (rotation == -1) {
                 //Debug.Log(string.Format("{0}: convex", i));
                 convex.Add(pt);
             } else
@@ -99,28 +110,42 @@ public class RoomsGenerator : MonoBehaviour {
         int indx = 0;
         while (rooms > 0)
         {
-            Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
+            //Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
             if (convex.Count > 0 && Random.value < 0.1f) {
 
-                Vector3 a = convex[0];
+                Vector3 a = convex[Random.Range(0, convex.Count)];
                 int idA = perimeter.IndexOf(a);
+                List<Vector3> directions = new List<Vector3>();
+                if (idA >= 0)
+                {
+                    directions.Add((a - perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count]).normalized);
+                    directions.Add((a - perimeter[(idA + 1) % perimeter.Count]).normalized);
 
-                List<Vector3> directions = new List<Vector3>() {
-                    (a - perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count]).normalized,
-                    (perimeter[(idA + 1) % perimeter.Count] - a).normalized
-                };
+                } else
+                {
+                    foreach(List<Vector3> iWall in wallLines)
+                    {
+                        if (iWall.Contains(a))
+                        {
+                            idA = iWall.IndexOf(a);
+                            directions.Add((a - iWall[idA - 1]).normalized);
+                            directions.Add((a - iWall[idA + 1]).normalized);
+                            break;
+                        }
+                    }
+                }
 
                 bool madeRoom = false;
-                for (int i=0; i<2; i++)
+                for (int i=0; i<directions.Count; i++)
                 {
                     Vector3 pt;
-                    if (RayInterceptsSegment(a, directions[i], perimeter, out pt))
+                    if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], perimeter, out pt))
                     {
                         List<Vector3> newWall = new List<Vector3>() { a, pt };
                         int testHit;
                         int wallHit;
                         int wallsHit;
-                        if (!CollidesWith(newWall, wallLines, out testHit, out wallHit, out wallsHit))
+                        if (!ProcGenHelpers.CollidesWith(newWall, wallLines, out testHit, out wallHit, out wallsHit))
                         {
                             if (wallLines.Contains(newWall))
                             {
@@ -128,13 +153,20 @@ public class RoomsGenerator : MonoBehaviour {
                             }
                             else
                             {
-                                Debug.Log(string.Format("Added simple wall {0} {1}", newWall[0], newWall[1]));
+                                Debug.Log(string.Format("Added simple wall {0} {1} {2}", newWall[0], newWall[1], directions[i]));
                                 madeRoom = true;
                                 wallLines.Add(newWall);
+                                if (!nonConcave.Contains(pt))
+                                {
+                                    nonConcave.Add(pt);
+                                }
                                 rooms--;
                                 break;
                             }
                         }
+                    } else
+                    {
+                        Debug.Log(string.Format("{0} -> {1} intercepts no wall", a, directions[i]));
                     }
                 }
                 if (!madeRoom)
@@ -174,24 +206,24 @@ public class RoomsGenerator : MonoBehaviour {
                     int testIndex;
                     int pathIndex;
 
-                    if (CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
+                    if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
                     {
                         Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
                     }
                     else
                     {
                         int pathsIndex;
-                        if (CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
+                        if (ProcGenHelpers.CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
                         {
                             Debug.Log("Collides with inner wall");
                         }
                         else {
-                            Debug.Log("Inner wall allowed");
+                            //Debug.Log("Inner wall allowed");
                             if (wallLines.Contains(newWall)) {
                                 Debug.LogWarning("Dupe wall");
                             }
                             else {
-                                Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
+                                //Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
                                 wallLines.Add(newWall);
                                 madeRoom = true;
                                 rooms--;
@@ -251,17 +283,19 @@ public class RoomsGenerator : MonoBehaviour {
                     float flexPos = longest - 2 * shortestWall;
                     int nextI = (idLong + 1) % perimeter.Count;
                     Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
+
                     Vector3 d = (pt - perimeter[idLong]).normalized;
                     //Rotate CW
                     d = new Vector3(d.z, 0, -d.x);
+
                     Vector3 ptB;
                     //Debug.Log(string.Format("{0} - {1}, {2}, d {3}", permimeter[idLong], permimeter[nextI], pt, d));
                     
-                    if (RayInterceptsSegment(pt, d, perimeter, out ptB))
+                    if (ProcGenHelpers.RayInterceptsSegment(pt, d, perimeter, out ptB))
                     {
                         bool perim2Perim = true;
                         Vector3 ptC;
-                        if (RayInterceptsSegment(pt, d, wallLines, out ptC))
+                        if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC))
                         {
                             if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
                             {
@@ -273,6 +307,14 @@ public class RoomsGenerator : MonoBehaviour {
                         if ((ptB - pt).magnitude > shortestWall)
                         {
                             wallLines.Add(new List<Vector3>() { pt, ptB });
+                            if (!nonConcave.Contains(pt))
+                            {
+                                nonConcave.Add(pt);
+                            }
+                            if (!nonConcave.Contains(ptB))
+                            {
+                                nonConcave.Add(ptB);
+                            }
                             rooms--;
                             perimeter.Insert(idLong + 1, pt);
                             if (perim2Perim)
@@ -280,7 +322,7 @@ public class RoomsGenerator : MonoBehaviour {
                                 for (int i=0, l=perimeter.Count; i< l; i++)
                                 {
                                     int j = (i + 1) % l;
-                                    if (PointOnSegment(perimeter[i], perimeter[j], ptB))
+                                    if (ProcGenHelpers.PointOnSegment(perimeter[i], perimeter[j], ptB))
                                     {
                                         perimeter.Insert(i + 1, ptB);
                                         Debug.Log("Inserted perim to perim");
@@ -366,8 +408,7 @@ public class RoomsGenerator : MonoBehaviour {
             mesh.SetUVs(0, UVs);
             mesh.RecalculateBounds();
             mesh.RecalculateNormals();
-
-            Debug.Log("Wall built");
+            
         }
 
     }
@@ -382,9 +423,9 @@ public class RoomsGenerator : MonoBehaviour {
             Vector3 pt = perimeter[idPerim];
             Vector3 rhs = pt - perimeter[(l + idPerim - 1) % l];
             Vector3 lhs = perimeter[(idPerim + 1) % l] - pt;
-            if (Sign(DotXZ(lhs, rhs)) == -1)
+            if (ProcGenHelpers.XZRotation(lhs, rhs) == -1)
             {
-                if (Sign(DotXZ(rhs, innerWall[wallSegment + 1] - innerWall[wallSegment])) == 0)
+                if (ProcGenHelpers.XZRotation(rhs, innerWall[wallSegment + 1] - innerWall[wallSegment]) == 0)
                 {
                     return 0;
                 }
@@ -402,9 +443,9 @@ public class RoomsGenerator : MonoBehaviour {
                 Vector3 pt = perimeter[idPerim];
                 Vector3 rhs = pt - perimeter[(l + idPerim - 1) % l];
                 Vector3 lhs = perimeter[(idPerim + 1) % l] - pt;
-                if (Sign(DotXZ(lhs, rhs)) == -1)
+                if (ProcGenHelpers.XZRotation(lhs, rhs) == -1)
                 {
-                    if (Sign(DotXZ(rhs, innerWall[wallSegment - 1] - innerWall[wallSegment])) == 0)
+                    if (ProcGenHelpers.XZRotation(rhs, innerWall[wallSegment - 1] - innerWall[wallSegment]) == 0)
                     {
                         return 1;
                     } else
@@ -415,173 +456,6 @@ public class RoomsGenerator : MonoBehaviour {
             }
         }
         return 0.5f;
-    }
-
-    bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<Vector3> line, out Vector3 pt)
-    {
-
-        for (int i=0, l=line.Count; i<l; i++)
-        {
-            Vector3 q1 = line[i];
-            Vector3 q2 = line[(i + 1) % l];
-            if (source == q1 || source == q2 || PointInsideSegment(q1, q2, source))
-            {
-                //Not interested in source on line
-                continue;
-            }
-
-            Vector3 v1 = source - q1;
-            Vector3 v2 = q2 - q1;
-            Vector3 v3 = direction;
-
-            float t1 = Vector3.Cross(new Vector3(v2.x, v2.z), new Vector3(v1.x, v1.z)).magnitude / DotXZ(v2, v3);
-            float t2 = DotXZ(v1, v3) / DotXZ(v2, v3);
-            if (t2 >= 0 && t2 <= 1)
-            {
-                if (t1 > 0)
-                {
-
-                    pt = Vector3.Lerp(q1, q2, t2);
-                    return true;
-                }
-            }
-        }
-
-        pt = Vector3.zero;
-        return false;
-    }
-
-    bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt)
-    {
-        Vector3 closest = Vector3.zero;
-        float smallest = 0;
-        bool any = false;
-        foreach (List<Vector3> line in lines)
-        {
-            if (RayInterceptsSegment(source, direction, line, out pt))
-            {
-                if (!any || smallest > (pt - source).sqrMagnitude)
-                {
-                    closest = pt;
-                    smallest = (pt - source).sqrMagnitude;
-                    any = true;
-                }
-                
-            }
-        }
-        pt = closest;
-        return any;
-    }
-
-    float DotXZ(Vector3 lhs, Vector3 rhs)
-    {
-        return lhs.x * rhs.z - lhs.z * rhs.x;
-    }
-
-    bool PointInsideSegment(Vector3 a, Vector3 b, Vector3 pt)
-    {
-        return Sign(DotXZ(a - pt, b - pt)) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
-    }
-
-    bool PointOnSegment(Vector3 a, Vector3 b, Vector3 pt)
-    {
-        return Sign(DotXZ(a - pt, b - pt)) == 0 && pt.x <= Mathf.Max(a.x, b.x) && pt.x >= Mathf.Min(a.x, b.x) && pt.z <= Mathf.Max(a.z, b.z) && pt.z >= Mathf.Min(a.z, b.z);
-
-    }
-
-    int Sign(float v)
-    {
-        if (v < -rotationThreshold)
-        {
-            return -1;
-        } else if (v > rotationThreshold)
-        {
-            return 1;
-        } else
-        {
-            return 0;
-        }
-    }
-
-    bool CollidesWith(Vector3 p1, Vector3 p2, List<Vector3> referencePath, out int index)
-    {
-        for (int i = 0, l = referencePath.Count - 1; i < l; i++)
-        {
-            Vector3 q1 = referencePath[i];
-            Vector3 q2 = referencePath[i + 1];
-
-            float aP1P2Q1 = Sign(DotXZ(p1 - p2, q1 - p2));
-            float aP1P2Q2 = Sign(DotXZ(p1 - p2, q2 - p2));
-
-            float aQ1Q2P1 = Sign(DotXZ(q1 - q2, p1 - q2));
-            float aQ1Q2P2 = Sign(DotXZ(q1 - q2, p2 - q2));
-
-            //Debug.Log(string.Format("Rotations {0} {1} {2} {3}", aP1P2Q1, aP1P2Q2, aQ1Q2P1, aQ1Q2P2));
-
-            if (aP1P2Q1 != aP1P2Q2 && aQ1Q2P1 != aQ1Q2P2)
-            {
-                if (p1 != q1 && p1 != q2 && p2 != q1 && p2 != q2)
-                {
-                    //Debug.Log("Angle intercept");
-                    index = i;
-                    return true;
-                }
-
-            }
-            else if (aP1P2Q1 == 0 && aP1P2Q2 == 0 && aQ1Q2P1 == 0 && aQ1Q2P2 == 0)
-            {
-                //Debug.Log("Inline point");
-                if (PointInsideSegment(q1, q2, p1) || PointInsideSegment(q1, q2, p2))
-                {
-                    //Debug.Log(string.Format("Linear intercept {0} ({1} {2} {3}), {4} ({5} {6} {7})", PointInsideSegment(q1, q2, p1), q1, q2, p1, PointInsideSegment(q1, q2, p2), q1, q2, p2));
-                    index = i;
-                    return true;
-                } else
-                {
-                    if (p1 == q1 && p2 == q2 || p1 == q2 && p2 == q1)
-                    {
-                        //Debug.Log(string.Format("Identical lines"));
-                        index = i;
-                        return true;
-                    }
-                }
-            }
-
-        }
-
-        index = -1;
-        return false;
-    }
-
-    bool CollidesWith(List<Vector3> testPath, List<Vector3> referencePath, out int testIndex, out int refIndex)
-    {
-        for (int i = 0, l = testPath.Count - 1; i < l; i++)
-        {
-            if (CollidesWith(testPath[i], testPath[i + 1], referencePath, out refIndex)) {
-                testIndex = i;
-                return true;
-            }
-        }
-        testIndex = -1;
-        refIndex = -1;
-        return false;
-    }
-
-    bool CollidesWith(List<Vector3> testPath, List<List<Vector3>> referencePaths, out int testIndex, out int refIndex, out int pathsIndex)
-    {
-        for (int i=0, l=referencePaths.Count; i< l; i++)
-        {            
-            if (CollidesWith(testPath, referencePaths[i], out testIndex, out refIndex))
-            {
-                pathsIndex = i;
-                return true;
-            }
-        }
-
-        testIndex = -1;
-        refIndex = -1;
-        pathsIndex = -1;
-        return false;
     }
 
     void MakeGrid()
