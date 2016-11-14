@@ -63,7 +63,7 @@ public class RoomsGenerator : MonoBehaviour {
     void Update () {
 	    if (!generated && !generating && floor.Generated)
         {
-            MakeGrid();
+            //MakeGrid();
             generating = true;
             StartCoroutine(_Build());
         } else if (generated && !floor.Generated)
@@ -296,6 +296,7 @@ public class RoomsGenerator : MonoBehaviour {
                         if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC))
                         {
                             Debug.Log("Wall construction intercept inner wall");
+                            nonConcave.Add(ptB);
                             if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
                             {
                                 ptB = ptC;
@@ -316,6 +317,7 @@ public class RoomsGenerator : MonoBehaviour {
                             }
                             rooms--;
                             perimeter.Insert(idLong + 1, pt);
+
                             if (perim2Perim)
                             {
                                 for (int i=0, l=perimeter.Count; i< l; i++)
@@ -329,6 +331,8 @@ public class RoomsGenerator : MonoBehaviour {
                                     }
                                 }
                             }
+
+                            Debug.Log("Inserted free wall");
                         }
                     }
                 }
@@ -510,29 +514,6 @@ public class RoomsGenerator : MonoBehaviour {
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;
-
-        if (generating && Z.Count != 0 && X.Count != 0)
-        {
-
-            float zMin = Z.Min();
-            float zMax = Z.Max();
-            float xMin = X.Min();
-            float xMax = X.Max();
-
-            foreach (float x in X)
-            {
-                Gizmos.DrawLine(
-                    transform.TransformPoint(new Vector3(x, 0, zMin)),
-                    transform.TransformPoint(new Vector3(x, 0, zMax)));
-            }
-
-            foreach (float z in Z)
-            {
-                Gizmos.DrawLine(
-                    transform.TransformPoint(new Vector3(xMin, 0, z)),
-                    transform.TransformPoint(new Vector3(xMax, 0, z)));
-            }
-        }
 
         Gizmos.color = Color.blue;
         foreach(Vector3 v in nonConcave)

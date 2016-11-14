@@ -172,24 +172,24 @@ public static class ProcGenHelpers {
     }
 
     public static bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt)
-    {
-        Vector3 closest = Vector3.zero;
+    {        
         float smallest = 0;
         bool any = false;
+        pt = Vector3.one;
+        Vector3 pt2;
         foreach (List<Vector3> line in lines)
         {
-            if (RayInterceptsSegment(source, direction, line, out pt))
+            if (RayInterceptsSegment(source, direction, line, out pt2))
             {
-                if (!any || smallest > (pt - source).sqrMagnitude)
+                if (!any || smallest > (pt2 - source).sqrMagnitude)
                 {
-                    closest = pt;
+                    pt = pt2;
                     smallest = (pt - source).sqrMagnitude;
                     any = true;
                 }
 
             }
         }
-        pt = closest;
         return any;
     }
 
