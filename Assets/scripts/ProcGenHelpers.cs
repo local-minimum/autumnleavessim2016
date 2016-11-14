@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public static class ProcGenHelpers {
 
     static float rotationThreshold = 0.0001f;
+    static float proximitySqThreshold = 0.00001f;
 
     public static float CrossXZ(Vector3 lhs, Vector3 rhs)
     {
@@ -171,19 +173,24 @@ public static class ProcGenHelpers {
         return false;
     }
 
-    public static bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt)
+    public static bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt, out int idLine)
     {        
         float smallest = 0;
         bool any = false;
         pt = Vector3.one;
+        idLine = -1;
+
         Vector3 pt2;
-        foreach (List<Vector3> line in lines)
+
+        for(int i=0, l=lines.Count; i< l; i++)
         {
-            if (RayInterceptsSegment(source, direction, line, out pt2))
+
+            if (RayInterceptsSegment(source, direction, lines[i], out pt2))
             {
                 if (!any || smallest > (pt2 - source).sqrMagnitude)
                 {
                     pt = pt2;
+                    idLine = i;
                     smallest = (pt - source).sqrMagnitude;
                     any = true;
                 }
@@ -201,5 +208,10 @@ public static class ProcGenHelpers {
     public static Vector3 Get90CCW(Vector3 v)
     {
         return new Vector3(-v.z, 0, v.x);
+    }
+
+    public static bool TooClose(Vector3 pt, List<Vector3> wall, float proximitySq)
+    {
+        return wall.Any(p => { float d = Vector3.SqrMagnitude(pt -  p); return d < proximitySq && d > proximitySqThreshold; });
     }
 }

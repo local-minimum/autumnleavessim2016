@@ -40,7 +40,10 @@ public class RoomsGenerator : MonoBehaviour {
 
     [SerializeField]
     float wallThickness = 0.1f;
-    
+
+    [SerializeField]
+    float shortestWall = 2f;
+
     List<Vector3> verts = new List<Vector3>();
     List<Vector2> UVs = new List<Vector2>();
     List<int> tris = new List<int>();
@@ -84,7 +87,13 @@ public class RoomsGenerator : MonoBehaviour {
 
     IEnumerator<WaitForSeconds> _Build()
     {
-        int rooms = Mathf.Clamp(Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(2, 4), 4, 8);
+        //TODO: Instert point in next wall behind current rather than far wall
+        //TODO: Allow corner to inner wall
+        //TODO: Reinstate linear points?
+        //TODO: Linear points to wall building.
+        //TODO: Allow inner wall free building.
+
+        int rooms = Mathf.Clamp(Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(2, 4), 4, 7);
         perimeter.Clear();
         perimeter.AddRange(floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList());        
 
@@ -98,7 +107,7 @@ public class RoomsGenerator : MonoBehaviour {
             if (rotation == -1) {
                 //Debug.Log(string.Format("{0}: convex", i));
                 convex.Add(pt);
-            } else
+            } else if (rotation == 1)
             {
                 //Debug.Log(string.Format("{0}: concave", i));
                 nonConcave.Add(pt);
@@ -144,25 +153,34 @@ public class RoomsGenerator : MonoBehaviour {
                         List<Vector3> newWall = new List<Vector3>() { a, pt };
                         int testHit;
                         int wallHit;
-                        int wallsHit;
+                        int wallsHit;                            
                         if (!ProcGenHelpers.CollidesWith(newWall, wallLines, out testHit, out wallHit, out wallsHit))
                         {
-                            if (wallLines.Contains(newWall))
+                            if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
                             {
-                                Debug.LogWarning("Dupe wall");
-                            }
-                            else
-                            {
-                                Debug.Log(string.Format("Added simple wall {0} {1} {2}", newWall[0], newWall[1], directions[i]));
-                                madeRoom = true;
-                                wallLines.Add(newWall);
-                                if (!nonConcave.Contains(pt))
+
+                                //TODO: Fix this test?
+                                if (wallLines.Contains(newWall))
                                 {
-                                    nonConcave.Add(pt);
+                                    Debug.LogWarning("Dupe wall");
                                 }
-                                rooms--;
-                                break;
+                                else
+                                {
+                                    Debug.Log(string.Format("Added simple wall {0} {1} {2}", newWall[0], newWall[1], directions[i]));
+                                    madeRoom = true;
+                                    wallLines.Add(newWall);
+                                    if (!nonConcave.Contains(pt))
+                                    {
+                                        nonConcave.Add(pt);
+                                    }
+                                    rooms--;
+                                    break;
+                                }
                             }
+                        } else
+                        {
+                            //TODO: here
+                            Debug.LogWarning("Not implemented wall building");
                         }
                     } else
                     {
@@ -259,7 +277,6 @@ public class RoomsGenerator : MonoBehaviour {
             {
 
                 //Min length to divide
-                float shortestWall = 2f;
                 float longest = Mathf.Pow(shortestWall * 2, 2);
                 List<float> lens = new List<float>();
                 for (int i=0, l=perimeter.Count; i< l; i++)
@@ -293,18 +310,26 @@ public class RoomsGenerator : MonoBehaviour {
                     {
                         bool perim2Perim = true;
                         Vector3 ptC;
-                        if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC))
+                        bool allowWall = true;
+                        int idLine;
+                        if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC, out idLine))
                         {
-                            Debug.Log("Wall construction intercept inner wall");
-                            nonConcave.Add(ptB);
-                            if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
+                            if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall))
                             {
-                                ptB = ptC;
-                                perim2Perim = false;
+                                allowWall = false;
+                            } else
+                            {
+                                Debug.Log("Wall construction intercept inner wall");
+                                nonConcave.Add(ptB);
+                                if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
+                                {
+                                    ptB = ptC;
+                                    perim2Perim = false;
+                                }
                             }
                         }
 
-                        if ((ptB - pt).magnitude > shortestWall)
+                        if (allowWall && (ptB - pt).magnitude > shortestWall && !ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
                         {
                             wallLines.Add(new List<Vector3>() { pt, ptB });
                             if (!nonConcave.Contains(pt))
