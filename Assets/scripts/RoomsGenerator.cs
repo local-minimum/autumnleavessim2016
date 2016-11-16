@@ -4,6 +4,13 @@ using System.Linq;
 
 public class RoomsGenerator : MonoBehaviour {
 
+    enum RoomBuildType
+    {
+        ConvexCornerToConvexCorner,
+        ConvexCornerToStraightToWall,
+        WallStraightToWall
+    };
+
     [SerializeField]
     FloorGenerator floor;
 
@@ -87,6 +94,7 @@ public class RoomsGenerator : MonoBehaviour {
 
     IEnumerator<WaitForSeconds> _Build()
     {
+        //TODO: Best way to remove convex points
         //TODO: Instert point in next wall behind current rather than far wall
         //TODO: Allow corner to inner wall
         //TODO: Reinstate linear points?
@@ -116,259 +124,35 @@ public class RoomsGenerator : MonoBehaviour {
 
        
         yield return new WaitForSeconds(0.1f);
-        int indx = 0;
-        while (rooms > 0)
+        int attempts = 0;
+                
+        while (rooms > 0 && attempts < 30)
         {
-            //Debug.Log(string.Format("{0} remaining walls, {1} convex points", rooms, convex.Count));
-            if (convex.Count > 0 && Random.value < 0.1f) {
+            RoomBuildType nextRoom = NextRoomType;
+            if (nextRoom == RoomBuildType.ConvexCornerToStraightToWall) {
 
-                Vector3 a = convex[Random.Range(0, convex.Count)];
-                int idA = perimeter.IndexOf(a);
-                List<Vector3> directions = new List<Vector3>();
-                if (idA >= 0)
+                if (MapCornerStraightWall())
                 {
-                    directions.Add((a - perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count]).normalized);
-                    directions.Add((a - perimeter[(idA + 1) % perimeter.Count]).normalized);
-
-                } else
-                {
-                    foreach(List<Vector3> iWall in wallLines)
-                    {
-                        if (iWall.Contains(a))
-                        {
-                            idA = iWall.IndexOf(a);
-                            directions.Add((a - iWall[idA - 1]).normalized);
-                            directions.Add((a - iWall[idA + 1]).normalized);
-                            break;
-                        }
-                    }
+                    rooms--;
                 }
-
-                bool madeRoom = false;
-                for (int i=0; i<directions.Count; i++)
-                {
-                    Vector3 pt;
-                    if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], perimeter, out pt))
-                    {
-                        List<Vector3> newWall = new List<Vector3>() { a, pt };
-                        int testHit;
-                        int wallHit;
-                        int wallsHit;                            
-                        if (!ProcGenHelpers.CollidesWith(newWall, wallLines, out testHit, out wallHit, out wallsHit))
-                        {
-                            if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
-                            {
-
-                                //TODO: Fix this test?
-                                if (wallLines.Contains(newWall))
-                                {
-                                    Debug.LogWarning("Dupe wall");
-                                }
-                                else
-                                {
-                                    Debug.Log(string.Format("Added simple wall {0} {1} {2}", newWall[0], newWall[1], directions[i]));
-                                    madeRoom = true;
-                                    wallLines.Add(newWall);
-                                    if (!nonConcave.Contains(pt))
-                                    {
-                                        nonConcave.Add(pt);
-                                    }
-                                    rooms--;
-                                    break;
-                                }
-                            }
-                        } else
-                        {
-                            //TODO: here
-                            Debug.LogWarning("Not implemented wall building");
-                        }
-                    } else
-                    {
-                        Debug.Log(string.Format("{0} -> {1} intercepts no wall", a, directions[i]));
-                    }
-                }
-                if (!madeRoom)
-                {
-                    convex.Remove(a);
-                }
-                yield return new WaitForSeconds(0.1f);
             }
-            else if (convex.Count > 1)
+            else if (nextRoom == RoomBuildType.ConvexCornerToConvexCorner)
             {
-                yield return new WaitForSeconds(0.2f);
-                indx %= convex.Count;
-                Vector3 a1 = convex[indx];
-                int indx2 = (indx + Random.Range(1, convex.Count - 1)) % convex.Count;
-                Vector3 a2 = convex[indx2];
-                //Debug.Log(string.Format("Using indices {0} {1} ({2})", indx, indx2, convex.Count));
-                List<List<Vector3>> testPaths = new List<List<Vector3>>();
-
-                if (a1.x == a2.x || a1.z == a2.z)
+                if (MapCornerToCornerWall())
                 {
-                    testPaths.Add(new List<Vector3>() { a1, a2 });
-                    //Debug.Log(string.Format("Test simple wall {0} {1}", a1, a2));
-                }
-                else
-                {
-                    Vector3[] c = new Vector3[2] { new Vector3(a1.x, 0, a2.z), new Vector3(a2.x, 0, a1.z) };
-                    for (int i = 0; i < 2; i++)
-                    {
-                        testPaths.Add(new List<Vector3>() { a1, c[i], a2 });
-                    }
+                    rooms--;
                 }
 
-                bool madeRoom = false;
-                for (int i = 0, l = testPaths.Count; i < l; i++)
-                {
-                    List<Vector3> newWall = testPaths[i];
-                    int testIndex;
-                    int pathIndex;
-
-                    if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
-                    {
-                        Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
-                    }
-                    else
-                    {
-                        int pathsIndex;
-                        if (ProcGenHelpers.CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
-                        {
-                            Debug.Log("Collides with inner wall");
-                        }
-                        else {
-                            //Debug.Log("Inner wall allowed");
-                            if (wallLines.Contains(newWall)) {
-                                Debug.LogWarning("Dupe wall");
-                            }
-                            else {
-                                //Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
-                                wallLines.Add(newWall);
-                                madeRoom = true;
-                                rooms--;
-                                if (newWall.Count == 3)
-                                {
-                                    convex.Add(newWall[1]);
-                                }
-                                if (Random.value < 0.5f)
-                                {
-                                    convex.Remove(newWall.First());
-                                }
-                                else {
-                                    convex.Remove(newWall.Last());
-                                }
-                                yield return new WaitForSeconds(0.2f);
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!madeRoom)
-                {
-                    if (Random.value < 0.5f)
-                    {
-                        convex.Remove(a1);
-                    } else
-                    {
-                        convex.Remove(a2);
-                    }
-                }
-
-            } else 
+            } else if (nextRoom == RoomBuildType.WallStraightToWall)
             {
-
-                //Min length to divide
-                float longest = Mathf.Pow(shortestWall * 2, 2);
-                List<float> lens = new List<float>();
-                for (int i=0, l=perimeter.Count; i< l; i++)
+                if (MapWallToWall())
                 {
-                    int nextI = (i + 1) % l;
-                    lens.Add((perimeter[nextI] - perimeter[i]).sqrMagnitude);
+                    rooms--;
                 }
-                int c = lens.Where(e => e > longest).Count();
-
-                if (c > 0)
-                {
-                    int v = Random.Range(0, c) + 1;
-
-                    //TODO: need to use also inner walls I thinks
-
-                    List<int> sums = new List<int>();
-                    lens.Aggregate(0, (sum, e) => { sum += e > longest ? 1 : 0; sums.Add(sum); return sum; });
-                    int idLong = sums.IndexOf(v);
-
-                    longest = Mathf.Sqrt(lens[idLong]);
-                    float flexPos = longest - 2 * shortestWall;
-                    int nextI = (idLong + 1) % perimeter.Count;
-                    Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
-                    
-                    Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
-
-                    Vector3 ptB;
-                    Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
-                    
-                    if (ProcGenHelpers.RayInterceptsSegment(pt, d, perimeter, out ptB))
-                    {
-                        bool perim2Perim = true;
-                        Vector3 ptC;
-                        bool allowWall = true;
-                        int idLine;
-                        if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC, out idLine))
-                        {
-                            if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall))
-                            {
-                                allowWall = false;
-                            } else
-                            {
-                                Debug.Log("Wall construction intercept inner wall");
-                                nonConcave.Add(ptB);
-                                if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
-                                {
-                                    ptB = ptC;
-                                    perim2Perim = false;
-                                }
-                            }
-                        }
-
-                        if (allowWall && (ptB - pt).magnitude > shortestWall && !ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
-                        {
-                            wallLines.Add(new List<Vector3>() { pt, ptB });
-                            if (!nonConcave.Contains(pt))
-                            {
-                                nonConcave.Add(pt);
-                            }
-                            if (!nonConcave.Contains(ptB))
-                            {
-                                nonConcave.Add(ptB);
-                            }
-                            rooms--;
-                            perimeter.Insert(idLong + 1, pt);
-
-                            if (perim2Perim)
-                            {
-                                for (int i=0, l=perimeter.Count; i< l; i++)
-                                {
-                                    int j = (i + 1) % l;
-                                    if (ProcGenHelpers.PointOnSegment(perimeter[i], perimeter[j], ptB))
-                                    {
-                                        perimeter.Insert(i + 1, ptB);
-                                        Debug.Log("Inserted perim to perim");
-                                        break;
-                                    }
-                                }
-                            }
-
-                            Debug.Log("Inserted free wall");
-                        }
-                    }
-                }
-                else {
-                    Debug.Log("Out of options");
-                    rooms = 0;
-                }
-
-                yield return new WaitForSeconds(0.1f);
             }
-            indx++;
+
+            attempts++;
+            yield return new WaitForSeconds(0.1f);
         }
 
         foreach (List<Vector3> innerWall in wallLines)
@@ -382,6 +166,288 @@ public class RoomsGenerator : MonoBehaviour {
 
         generated = true;
         generating = false;
+    }
+
+    RoomBuildType NextRoomType
+    {
+        get
+        {
+            int convexCount = convex.Count;
+            if (true)
+            {
+                return RoomBuildType.ConvexCornerToStraightToWall;
+            }
+            if (convexCount < 1)
+            {
+                return RoomBuildType.WallStraightToWall;
+            } else if (convexCount < 2)
+            {
+                if (Random.value < 0.7f)
+                {
+                    return RoomBuildType.ConvexCornerToStraightToWall;
+                } else
+                {
+                    return RoomBuildType.WallStraightToWall;
+                }
+            } else
+            {
+                float v = Random.value;
+                if (v < 0.6f)
+                {
+                    return RoomBuildType.ConvexCornerToConvexCorner;
+                } else if (v < 0.9f)
+                {
+                    return RoomBuildType.ConvexCornerToStraightToWall;
+                } else
+                {
+                    return RoomBuildType.WallStraightToWall;
+                }
+            }
+        }
+    }
+
+    bool MapWallToWall()
+    {
+        bool room = false;
+        //Min length to divide
+        float longest = Mathf.Pow(shortestWall * 2, 2);
+        List<float> lens = new List<float>();
+        for (int i = 0, l = perimeter.Count; i < l; i++)
+        {
+            int nextI = (i + 1) % l;
+            lens.Add((perimeter[nextI] - perimeter[i]).sqrMagnitude);
+        }
+        int c = lens.Where(e => e > longest).Count();
+
+        if (c > 0)
+        {
+            int v = Random.Range(0, c) + 1;
+
+            //TODO: need to use also inner walls I thinks
+
+            List<int> sums = new List<int>();
+            lens.Aggregate(0, (sum, e) => { sum += e > longest ? 1 : 0; sums.Add(sum); return sum; });
+            int idLong = sums.IndexOf(v);
+
+            longest = Mathf.Sqrt(lens[idLong]);
+            float flexPos = longest - 2 * shortestWall;
+            int nextI = (idLong + 1) % perimeter.Count;
+            Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
+
+            Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
+
+            Vector3 ptB;
+            Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
+
+            if (ProcGenHelpers.RayInterceptsSegment(pt, d, perimeter, out ptB))
+            {
+                bool perim2Perim = true;
+                Vector3 ptC;
+                bool allowWall = true;
+                int idLine;
+                if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC, out idLine))
+                {
+                    if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall))
+                    {
+                        allowWall = false;
+                    }
+                    else
+                    {
+                        Debug.Log("Wall construction intercept inner wall");
+                        nonConcave.Add(ptB);
+                        if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
+                        {
+                            ptB = ptC;
+                            perim2Perim = false;
+                        }
+                    }
+                }
+
+                if (allowWall && (ptB - pt).magnitude > shortestWall && !ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
+                {
+                    wallLines.Add(new List<Vector3>() { pt, ptB });
+                    if (!nonConcave.Contains(pt))
+                    {
+                        nonConcave.Add(pt);
+                    }
+                    if (!nonConcave.Contains(ptB))
+                    {
+                        nonConcave.Add(ptB);
+                    }
+                    room = true;
+                    perimeter.Insert(idLong + 1, pt);
+
+                    if (perim2Perim)
+                    {
+                        for (int i = 0, l = perimeter.Count; i < l; i++)
+                        {
+                            int j = (i + 1) % l;
+                            if (ProcGenHelpers.PointOnSegment(perimeter[i], perimeter[j], ptB))
+                            {
+                                perimeter.Insert(i + 1, ptB);
+                                Debug.Log("Inserted perim to perim");
+                                break;
+                            }
+                        }
+                    }
+
+                    Debug.Log("Inserted free wall");
+                }
+            }
+        }
+
+        return room;
+
+    }
+
+    bool MapCornerToCornerWall()
+    {
+        bool room = false;
+        int indx = Random.Range(0, convex.Count);
+        Vector3 a1 = convex[indx];
+        int indx2 = (indx + Random.Range(1, convex.Count - 1)) % convex.Count;
+        Vector3 a2 = convex[indx2];
+        //Debug.Log(string.Format("Using indices {0} {1} ({2})", indx, indx2, convex.Count));
+        List<List<Vector3>> testPaths = new List<List<Vector3>>();
+
+        if (a1.x == a2.x || a1.z == a2.z)
+        {
+            testPaths.Add(new List<Vector3>() { a1, a2 });
+            //Debug.Log(string.Format("Test simple wall {0} {1}", a1, a2));
+        }
+        else
+        {
+            Vector3[] c = new Vector3[2] { new Vector3(a1.x, 0, a2.z), new Vector3(a2.x, 0, a1.z) };
+            for (int i = 0; i < 2; i++)
+            {
+                testPaths.Add(new List<Vector3>() { a1, c[i], a2 });
+            }
+        }
+
+        for (int i = 0, l = testPaths.Count; i < l; i++)
+        {
+            List<Vector3> newWall = testPaths[i];
+            int testIndex;
+            int pathIndex;
+
+            if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
+            {
+                Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
+            }
+            else
+            {
+                int pathsIndex;
+                if (ProcGenHelpers.CollidesWith(newWall, wallLines, out testIndex, out pathIndex, out pathsIndex))
+                {
+                    Debug.Log("Collides with inner wall");
+                }
+                else {
+                    //Debug.Log("Inner wall allowed");
+                    if (wallLines.Contains(newWall))
+                    {
+                        Debug.LogWarning("Dupe wall");
+                    }
+                    else {
+                        //Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
+                        wallLines.Add(newWall);
+                        room = true;
+                        if (newWall.Count == 3)
+                        {
+                            convex.Add(newWall[1]);
+                        }
+                        if (Random.value < 0.5f)
+                        {
+                            convex.Remove(newWall.First());
+                        }
+                        else {
+                            convex.Remove(newWall.Last());
+                        }                        
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (room)
+        {
+            if (Random.value < 0.5f)
+            {
+                convex.Remove(a1);
+            }
+            else
+            {
+                convex.Remove(a2);
+            }
+        }
+    
+        return room;
+    }
+
+    bool MapCornerStraightWall()
+    {
+        bool room = false;
+        Vector3 a = convex[Random.Range(0, convex.Count)];
+        int idA = perimeter.IndexOf(a);
+        List<Vector3> directions = new List<Vector3>();
+        if (idA >= 0)
+        {
+            directions.Add((a - perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count]).normalized);
+            directions.Add((a - perimeter[(idA + 1) % perimeter.Count]).normalized);
+
+        }
+        else
+        {
+            foreach (List<Vector3> iWall in wallLines)
+            {
+                if (iWall.Contains(a))
+                {
+                    idA = iWall.IndexOf(a);
+                    directions.Add((a - iWall[idA - 1]).normalized);
+                    directions.Add((a - iWall[idA + 1]).normalized);
+                    break;
+                }
+            }
+        }
+
+        Vector3 pt = Vector3.zero;
+
+        for (int i = 0; i < directions.Count; i++)
+        {
+            if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], perimeter, out pt))
+            {
+                int wallsHit;
+                Vector3 pt2;
+                if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], wallLines, out pt2, out wallsHit))
+                {
+                    if (!ProcGenHelpers.TooClose(pt, wallLines[wallsHit], shortestWall))
+                    {
+                        pt = pt2;
+                        Debug.Log("Corner to inner wall");
+                        room = true;
+                        break;
+                    }
+                }
+                else if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
+                {
+                    Debug.Log("Corner to outer wall");
+                    room = true;
+                    break;
+                }
+            }
+        }
+
+        if (room)
+        {
+            Debug.Log(string.Format("Added simple wall {0} {1}", a, pt));
+            nonConcave.Add(pt);
+            wallLines.Add(new List<Vector3>() { a, pt });
+            if (!nonConcave.Contains(pt))
+            {
+                nonConcave.Add(pt);
+            }
+        }
+
+        return room;
     }
 
     void ConstructInnerWall(List<Vector3> innerWall)
