@@ -98,7 +98,7 @@ public class RoomsGenerator : MonoBehaviour {
     {
         //TODO: Best way to remove convex points
         //TODO: Instert point in next wall behind current rather than far wall        
-        //TODO: Reinstate linear points?
+        //TODO: Have points of interest (non concave) and use for corners too?
         //TODO: Linear points to wall building.
         //TODO: Allow inner wall free building.
 
@@ -127,7 +127,7 @@ public class RoomsGenerator : MonoBehaviour {
        
         yield return new WaitForSeconds(0.1f);
         int attempts = 0;
-        while (rooms > 0 && attempts < 30)
+        while (rooms > 0 && attempts < 300)
         {
             bool addedRoom = false;
             RoomBuildType nextRoom = NextRoomType;
@@ -157,7 +157,7 @@ public class RoomsGenerator : MonoBehaviour {
             }
 
             attempts++;
-            yield return new WaitForSeconds(addedRoom ? 1f : 0.1f);
+            yield return new WaitForSeconds(addedRoom ? 0.4f : 0.01f);
         }
 
         Debug.LogWarning(string.Format("Ended with remaining {0} rooms after {1} attempts", rooms, attempts));
@@ -180,10 +180,7 @@ public class RoomsGenerator : MonoBehaviour {
         get
         {
             int convexCount = convex.Count;
-            if (true)
-            {
-                return RoomBuildType.ConvexCornerToStraightToWall;
-            }
+
             if (convexCount < 1)
             {
                 return RoomBuildType.WallStraightToWall;
@@ -202,7 +199,7 @@ public class RoomsGenerator : MonoBehaviour {
                 if (v < 0.6f)
                 {
                     return RoomBuildType.ConvexCornerToConvexCorner;
-                } else if (v < 0.9f)
+                } else if (v < 0.95f)
                 {
                     return RoomBuildType.ConvexCornerToStraightToWall;
                 } else
@@ -244,10 +241,12 @@ public class RoomsGenerator : MonoBehaviour {
             longest = Mathf.Sqrt(lens[idLong]);
             float flexPos = longest - 2 * shortestWall;
             int nextI = (idLong + 1) % perimeter.Count;
-            Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], (Random.value * flexPos + shortestWall) / longest);
+            float t = (Random.value * flexPos + shortestWall) / longest;
+            Debug.Log(t);
+            Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], t);
 
             Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
-
+            AddGizmoWall(pt, pt + d);
             Vector3 ptB;
             Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
 
@@ -259,7 +258,7 @@ public class RoomsGenerator : MonoBehaviour {
                 int idLine;
                 if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC, out idLine))
                 {
-                    if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall))
+                    if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall) || ProcGenHelpers.IsKnownSegment(pt, ptC, wallLines))
                     {
                         allowWall = false;
                     }
@@ -273,6 +272,9 @@ public class RoomsGenerator : MonoBehaviour {
                             perim2Perim = false;
                         }
                     }
+                } else if (ProcGenHelpers.IsKnownSegment(pt, ptB, perimeter))
+                {
+                    allowWall = false;
                 }
 
                 if (allowWall && (ptB - pt).magnitude > shortestWall && !ProcGenHelpers.TooClose(pt, perimeter, shortestWall))

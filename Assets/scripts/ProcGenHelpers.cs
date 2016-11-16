@@ -177,7 +177,7 @@ public static class ProcGenHelpers
 
             Vector3 v1 = source - q1;
             Vector3 v2 = q2 - q1;
-            Vector3 v3 = direction; // Get90CCW(direction);
+            Vector3 v3 = Get90CCW(direction);
 
             float t1 = Mathf.Abs(CrossXZ(v2, v1)) / Vector3.Dot(v2, v3);
             float t2 = Vector3.Dot(v1, v3) / Vector3.Dot(v2, v3);
