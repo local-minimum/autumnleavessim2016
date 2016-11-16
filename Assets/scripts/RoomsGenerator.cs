@@ -344,7 +344,21 @@ public class RoomsGenerator : MonoBehaviour {
             int testIndex;
             int pathIndex;
 
-            if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
+            bool isKnown = false;
+            for (int idW=0, wL=newWall.Count; idW < wL - 1; idW++)
+            {
+                if (ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], perimeter) || ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], wallLines))
+                {
+                    isKnown = true;
+                    break;
+                }
+            }
+
+            if (isKnown)
+            {
+                Debug.Log("Inner wall collided with previously known wall");
+            }
+            else if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
             {
                 Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
             }
@@ -369,28 +383,10 @@ public class RoomsGenerator : MonoBehaviour {
                         {
                             convex.Add(newWall[1]);
                         }
-                        if (Random.value < 0.5f)
-                        {
-                            convex.Remove(newWall.First());
-                        }
-                        else {
-                            convex.Remove(newWall.Last());
-                        }                        
+                     
                         break;
                     }
                 }
-            }
-        }
-
-        if (room)
-        {
-            if (Random.value < 0.5f)
-            {
-                convex.Remove(a1);
-            }
-            else
-            {
-                convex.Remove(a2);
             }
         }
     
