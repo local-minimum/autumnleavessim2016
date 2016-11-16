@@ -54,6 +54,8 @@ public class RoomsGenerator : MonoBehaviour {
     List<Vector3> verts = new List<Vector3>();
     List<Vector2> UVs = new List<Vector2>();
     List<int> tris = new List<int>();
+
+    List<Vector3> gizmoWalls = new List<Vector3>();
     
     Mesh mesh;
 
@@ -95,15 +97,15 @@ public class RoomsGenerator : MonoBehaviour {
     IEnumerator<WaitForSeconds> _Build()
     {
         //TODO: Best way to remove convex points
-        //TODO: Instert point in next wall behind current rather than far wall
-        //TODO: Allow corner to inner wall
+        //TODO: Instert point in next wall behind current rather than far wall        
         //TODO: Reinstate linear points?
         //TODO: Linear points to wall building.
         //TODO: Allow inner wall free building.
 
+        gizmoWalls.Clear();
         int rooms = Mathf.Clamp(Random.Range(1, 3) + Random.Range(1, 4) + Random.Range(2, 4), 4, 7);
         perimeter.Clear();
-        perimeter.AddRange(floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList());        
+        perimeter.AddRange(ProcGenHelpers.Simplify(floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList()));        
 
         yield return new WaitForSeconds(0.2f);
         for (int i=0, l=perimeter.Count; i< l; i++)
@@ -125,15 +127,16 @@ public class RoomsGenerator : MonoBehaviour {
        
         yield return new WaitForSeconds(0.1f);
         int attempts = 0;
-                
         while (rooms > 0 && attempts < 30)
         {
+            bool addedRoom = false;
             RoomBuildType nextRoom = NextRoomType;
             if (nextRoom == RoomBuildType.ConvexCornerToStraightToWall) {
 
                 if (MapCornerStraightWall())
                 {
                     rooms--;
+                    addedRoom = true;
                 }
             }
             else if (nextRoom == RoomBuildType.ConvexCornerToConvexCorner)
@@ -141,6 +144,7 @@ public class RoomsGenerator : MonoBehaviour {
                 if (MapCornerToCornerWall())
                 {
                     rooms--;
+                    addedRoom = true;
                 }
 
             } else if (nextRoom == RoomBuildType.WallStraightToWall)
@@ -148,12 +152,15 @@ public class RoomsGenerator : MonoBehaviour {
                 if (MapWallToWall())
                 {
                     rooms--;
+                    addedRoom = true;
                 }
             }
 
             attempts++;
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(addedRoom ? 1f : 0.1f);
         }
+
+        Debug.LogWarning(string.Format("Ended with remaining {0} rooms after {1} attempts", rooms, attempts));
 
         foreach (List<Vector3> innerWall in wallLines)
         {
@@ -204,6 +211,11 @@ public class RoomsGenerator : MonoBehaviour {
                 }
             }
         }
+    }
+
+    void AddGizmoWall(Vector3 from, Vector3 to)
+    {
+        gizmoWalls.AddRange(new List<Vector3>() { from, to });
     }
 
     bool MapWallToWall()
@@ -387,14 +399,21 @@ public class RoomsGenerator : MonoBehaviour {
     {
         bool room = false;
         Vector3 a = convex[Random.Range(0, convex.Count)];
+        //Debug.Log("Building from corner " + a);
         int idA = perimeter.IndexOf(a);
         List<Vector3> directions = new List<Vector3>();
         if (idA >= 0)
         {
             directions.Add((a - perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count]).normalized);
             directions.Add((a - perimeter[(idA + 1) % perimeter.Count]).normalized);
+            directions.Add((perimeter[(idA + 1) % perimeter.Count] - a).normalized);
+            directions.Add((perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count] - a).normalized);
+
+            AddGizmoWall(a, a + directions[0]);
+            AddGizmoWall(a, a + directions[1]);
 
         }
+
         else
         {
             foreach (List<Vector3> iWall in wallLines)
@@ -404,6 +423,10 @@ public class RoomsGenerator : MonoBehaviour {
                     idA = iWall.IndexOf(a);
                     directions.Add((a - iWall[idA - 1]).normalized);
                     directions.Add((a - iWall[idA + 1]).normalized);
+
+                    AddGizmoWall(a, a + directions[0]);
+                    AddGizmoWall(a, a + directions[1]);
+
                     break;
                 }
             }
@@ -419,7 +442,7 @@ public class RoomsGenerator : MonoBehaviour {
                 Vector3 pt2;
                 if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], wallLines, out pt2, out wallsHit))
                 {
-                    if (!ProcGenHelpers.TooClose(pt, wallLines[wallsHit], shortestWall))
+                    if (!ProcGenHelpers.TooClose(pt, wallLines[wallsHit], shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt2, wallLines))
                     {
                         pt = pt2;
                         Debug.Log("Corner to inner wall");
@@ -427,18 +450,18 @@ public class RoomsGenerator : MonoBehaviour {
                         break;
                     }
                 }
-                else if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall))
+                else if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt, perimeter) && !ProcGenHelpers.IsKnownSegment(a, pt, wallLines))
                 {
                     Debug.Log("Corner to outer wall");
                     room = true;
-                    break;
+                    break;                    
                 }
             }
         }
 
         if (room)
         {
-            Debug.Log(string.Format("Added simple wall {0} {1}", a, pt));
+            Debug.LogWarning(string.Format("Added simple wall {0} {1}", a, pt));
             nonConcave.Add(pt);
             wallLines.Add(new List<Vector3>() { a, pt });
             if (!nonConcave.Contains(pt))
@@ -615,6 +638,12 @@ public class RoomsGenerator : MonoBehaviour {
         foreach(Vector3 v in convex)
         {
             Gizmos.DrawCube(transform.TransformPoint(v), Vector3.one * gizmoSize * 2);
+        }
+
+        Gizmos.color = Color.red;
+        for (int i=0; i<gizmoWalls.Count; i+=2)
+        {
+            Gizmos.DrawLine(transform.TransformPoint(gizmoWalls[i]), transform.TransformPoint(gizmoWalls[i + 1]));
         }
 
         Gizmos.color = Color.cyan;
