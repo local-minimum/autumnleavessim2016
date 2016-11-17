@@ -51,6 +51,9 @@ public class RoomsGenerator : MonoBehaviour {
     [SerializeField]
     float shortestWall = 2f;
 
+    [SerializeField]
+    MeshCollider mCol;
+
     List<Vector3> verts = new List<Vector3>();
     List<Vector2> UVs = new List<Vector2>();
     List<int> tris = new List<int>();
@@ -170,6 +173,10 @@ public class RoomsGenerator : MonoBehaviour {
             ConstructInnerWall(innerWall);
             yield return new WaitForSeconds(0.1f);
         }
+
+
+        mCol.sharedMesh = null;
+        mCol.sharedMesh = mesh;
 
         generated = true;
         generating = false;

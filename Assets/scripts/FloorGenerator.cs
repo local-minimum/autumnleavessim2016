@@ -348,6 +348,9 @@ public class FloorGenerator : MonoBehaviour {
     [SerializeField]
     KeyCode regenKey;
 
+    [SerializeField]
+    MeshCollider mCol;
+
     List<Vector3> verts = new List<Vector3>();
     List<int> tris = new List<int>();
     List<Vector2> UVs = new List<Vector2>();
@@ -573,6 +576,9 @@ public class FloorGenerator : MonoBehaviour {
             yield return new WaitForSeconds (0.1f);
 
 		}
+
+        mCol.sharedMesh = null;
+        mCol.sharedMesh = mesh;
 
         generated = true;
         generating = false;

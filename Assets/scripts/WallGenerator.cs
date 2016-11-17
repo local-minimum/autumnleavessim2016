@@ -9,6 +9,9 @@ public class WallGenerator : MonoBehaviour
     FloorGenerator floor;
 
     [SerializeField]
+    MeshCollider mCol;
+
+    [SerializeField]
     float delay = 0.5f;
 
     [SerializeField]
@@ -132,6 +135,10 @@ public class WallGenerator : MonoBehaviour
                     mesh.SetUVs(0, UVs);
                     mesh.RecalculateBounds();
                     mesh.RecalculateNormals();
+
+                    mCol.sharedMesh = null;
+                    mCol.sharedMesh = mesh;
+
                 }
                 yield return new WaitForSeconds(0.05f);
             }

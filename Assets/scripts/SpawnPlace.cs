@@ -70,6 +70,8 @@ public class SpawnPlace : MonoBehaviour {
             
         }
 
+        PlayerController.Instance.Spawn(transform);
+
     }
 
 }
