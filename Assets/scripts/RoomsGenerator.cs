@@ -248,7 +248,7 @@ public class RoomsGenerator : MonoBehaviour {
             Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
             AddGizmoWall(pt, pt + d);
             Vector3 ptB;
-            Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
+            //Debug.Log(string.Format("{0} - {1}, {2}, d {3}", perimeter[idLong], perimeter[nextI], pt, d));
 
             if (ProcGenHelpers.RayInterceptsSegment(pt, d, perimeter, out ptB))
             {
@@ -258,13 +258,13 @@ public class RoomsGenerator : MonoBehaviour {
                 int idLine;
                 if (ProcGenHelpers.RayInterceptsSegment(pt, d, wallLines, out ptC, out idLine))
                 {
-                    if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall) || ProcGenHelpers.IsKnownSegment(pt, ptC, wallLines))
+                    if (ProcGenHelpers.TooClose(pt, wallLines[idLine], shortestWall) || ProcGenHelpers.IsKnownSegment(pt, ptC, wallLines) || ProcGenHelpers.IsKnownSegment(pt, ptC, true, perimeter))
                     {
                         allowWall = false;
                     }
                     else
                     {
-                        Debug.Log("Wall construction intercept inner wall");
+                        //Debug.Log("Wall construction intercept inner wall");
                         nonConcave.Add(ptB);
                         if ((ptC - pt).sqrMagnitude < (ptB - pt).sqrMagnitude)
                         {
@@ -272,7 +272,7 @@ public class RoomsGenerator : MonoBehaviour {
                             perim2Perim = false;
                         }
                     }
-                } else if (ProcGenHelpers.IsKnownSegment(pt, ptB, perimeter))
+                } else if (ProcGenHelpers.IsKnownSegment(pt, ptB, true, perimeter))
                 {
                     allowWall = false;
                 }
@@ -347,7 +347,7 @@ public class RoomsGenerator : MonoBehaviour {
             bool isKnown = false;
             for (int idW=0, wL=newWall.Count; idW < wL - 1; idW++)
             {
-                if (ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], perimeter) || ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], wallLines))
+                if (ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], true, perimeter) || ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], wallLines))
                 {
                     isKnown = true;
                     break;
@@ -440,7 +440,7 @@ public class RoomsGenerator : MonoBehaviour {
                 Vector3 pt2;
                 if (ProcGenHelpers.RayInterceptsSegment(a, directions[i], wallLines, out pt2, out wallsHit))
                 {
-                    if (!ProcGenHelpers.TooClose(pt, wallLines[wallsHit], shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt2, wallLines))
+                    if (!ProcGenHelpers.TooClose(pt, wallLines[wallsHit], shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt2, wallLines) && !ProcGenHelpers.IsKnownSegment(a, pt2, true, perimeter))
                     {
                         pt = pt2;
                         Debug.Log("Corner to inner wall");
@@ -448,7 +448,7 @@ public class RoomsGenerator : MonoBehaviour {
                         break;
                     }
                 }
-                else if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt, perimeter) && !ProcGenHelpers.IsKnownSegment(a, pt, wallLines))
+                else if (!ProcGenHelpers.TooClose(pt, perimeter, shortestWall) && !ProcGenHelpers.IsKnownSegment(a, pt, true, perimeter) && !ProcGenHelpers.IsKnownSegment(a, pt, wallLines))
                 {
                     Debug.Log("Corner to outer wall");
                     room = true;

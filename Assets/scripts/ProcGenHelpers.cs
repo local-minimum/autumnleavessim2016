@@ -183,7 +183,7 @@ public static class ProcGenHelpers
 
             float t1 = Mathf.Abs(CrossXZ(v2, v1)) / Vector3.Dot(v2, v3);
             float t2 = Vector3.Dot(v1, v3) / Vector3.Dot(v2, v3);
-            if (t2 >= 0 && t2 <= 1)
+            if (t2 >= 0 && t2 <= 1 && t1 < 0)
             {
                 pt = Vector3.Lerp(q1, q2, t2);
                 return true;
@@ -236,7 +236,7 @@ public static class ProcGenHelpers
         return wall.Any(p => { float d = Vector3.SqrMagnitude(pt - p); return d < proximitySq && d > proximitySqThreshold; });
     }
 
-    public static bool IsKnownSegment(Vector3 a, Vector3 b, List<Vector3> wall)
+    public static bool IsKnownSegment(Vector3 a, Vector3 b, bool circular, List<Vector3> wall)
     {
         int posA = wall.Select(e => Vector3.SqrMagnitude(e - a) < proximitySqThreshold).ToList().IndexOf(true);
         if (posA < 0)
@@ -255,12 +255,12 @@ public static class ProcGenHelpers
         int start = Mathf.Min(posA, posB);
         int end = Mathf.Max(posA, posB);
 
-        if (Mathf.Abs(start - end) == 1)
+        if (end - start == 1 || circular && end - start == wall.Count - 1)
         {
             return true;
         } else
         {
-            //Debug.Log(Mathf.Abs(start - end));
+            Debug.Log(Mathf.Abs(start - end));
         }
 
         int l = wall.Count;
@@ -288,7 +288,7 @@ public static class ProcGenHelpers
         //Debug.Log(string.Format("Testing {0}, l {1}", walls, walls.Count));
         for(int i=0, l=walls.Count; i< l; i++)
         {
-            if (IsKnownSegment(a, b, walls[i]))
+            if (IsKnownSegment(a, b, false, walls[i]))
             {
                 return true;
             }
