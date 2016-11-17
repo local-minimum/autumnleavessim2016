@@ -81,12 +81,14 @@ public static class ProcGenHelpers
         return 0;
     }
 
-    public static bool CollidesWith(Vector3 p1, Vector3 p2, List<Vector3> referencePath, out int index)
+    public static bool CollidesWith(Vector3 p1, Vector3 p2, List<Vector3> referencePath, bool circular, out int index)
     {
-        for (int i = 0, l = referencePath.Count - 1; i < l; i++)
+        int l = referencePath.Count;
+        int end = l - (circular ? 0 : 1);
+        for (int i = 0; i < end; i++)
         {
             Vector3 q1 = referencePath[i];
-            Vector3 q2 = referencePath[i + 1];
+            Vector3 q2 = referencePath[(i + 1) % l];
 
             float aP1P2Q1 = Sign(CrossXZ(p1 - p2, q1 - p2));
             float aP1P2Q2 = Sign(CrossXZ(p1 - p2, q2 - p2));
@@ -130,11 +132,11 @@ public static class ProcGenHelpers
         return false;
     }
 
-    public static bool CollidesWith(List<Vector3> testPath, List<Vector3> referencePath, out int testIndex, out int refIndex)
+    public static bool CollidesWith(List<Vector3> testPath, List<Vector3> referencePath, bool circular, out int testIndex, out int refIndex)
     {
         for (int i = 0, l = testPath.Count - 1; i < l; i++)
         {
-            if (CollidesWith(testPath[i], testPath[i + 1], referencePath, out refIndex))
+            if (CollidesWith(testPath[i], testPath[i + 1], referencePath, circular, out refIndex))
             {
                 testIndex = i;
                 return true;
@@ -149,7 +151,7 @@ public static class ProcGenHelpers
     {
         for (int i = 0, l = referencePaths.Count; i < l; i++)
         {
-            if (CollidesWith(testPath, referencePaths[i], out testIndex, out refIndex))
+            if (CollidesWith(testPath, referencePaths[i], false, out testIndex, out refIndex))
             {
                 pathsIndex = i;
                 return true;

@@ -358,7 +358,7 @@ public class RoomsGenerator : MonoBehaviour {
             {
                 Debug.Log("Inner wall collided with previously known wall");
             }
-            else if (ProcGenHelpers.CollidesWith(newWall, perimeter, out testIndex, out pathIndex))
+            else if (ProcGenHelpers.CollidesWith(newWall, perimeter, true, out testIndex, out pathIndex))
             {
                 Debug.Log(string.Format("Inner wall {0} {1} collides at ({2} | {3})", newWall[testIndex], newWall[testIndex + 1], testIndex, pathIndex));
             }
