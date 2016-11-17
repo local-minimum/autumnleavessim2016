@@ -116,6 +116,9 @@ public class WallGenerator : MonoBehaviour
                         mesh.RecalculateBounds();
                         mesh.RecalculateNormals();
 
+                        mCol.sharedMesh = null;
+                        mCol.sharedMesh = mesh;
+
                         yield return new WaitForSeconds(delay);
                     }
                 }

@@ -170,7 +170,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floor: {fileID: 632717242}
   walls: {fileID: 1680138745}
-  delay: 0.5
+  delay: 0.01
 --- !u!1 &42625416
 GameObject:
   m_ObjectHideFlags: 0
@@ -272,7 +272,6 @@ GameObject:
   - 224: {fileID: 91706759}
   - 222: {fileID: 91706761}
   - 114: {fileID: 91706760}
-  - 114: {fileID: 91706762}
   m_Layer: 5
   m_Name: MousePointer
   m_TagString: Untagged
@@ -331,24 +330,6 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 91706758}
---- !u!114 &91706762
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 91706758}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3467bceec77c8de448639aa1d0a50c1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  centerCursor: {fileID: 91706760}
-  deactivateKey: 9
-  maxDist: 10
-  layers:
-    serializedVersion: 2
-    m_Bits: 256
-  iMode: 0
 --- !u!1 &96299905
 GameObject:
   m_ObjectHideFlags: 0
@@ -386,6 +367,7 @@ GameObject:
   m_Component:
   - 4: {fileID: 167721476}
   - 114: {fileID: 167721478}
+  - 114: {fileID: 167721482}
   - 54: {fileID: 167721477}
   - 136: {fileID: 167721481}
   - 65: {fileID: 167721480}
@@ -441,13 +423,19 @@ MonoBehaviour:
   head: {fileID: 768153752}
   feet: {fileID: 864542023}
   canvas: {fileID: 976202188}
+  headVertSensitivity: 20
+  headHorSensitivity: 20
+  maxWalkSq: 30
+  walkFactor: 20
+  rotationSensitivity: 2
+  velocityDecay: 2
 --- !u!135 &167721479
 SphereCollider:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 167721475}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: e384a81f4bc05f245a473339343e42dc, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -459,7 +447,7 @@ BoxCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 167721475}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: e384a81f4bc05f245a473339343e42dc, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -471,13 +459,31 @@ CapsuleCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 167721475}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: e384a81f4bc05f245a473339343e42dc, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   m_Radius: 0.2
   m_Height: 1.7
   m_Direction: 1
   m_Center: {x: 0, y: -1, z: 0}
+--- !u!114 &167721482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 167721475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3467bceec77c8de448639aa1d0a50c1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  centerCursor: {fileID: 91706760}
+  deactivateKey: 9
+  maxDist: 10
+  layers:
+    serializedVersion: 2
+    m_Bits: 256
+  iMode: 0
 --- !u!1 &204781307
 GameObject:
   m_ObjectHideFlags: 0
@@ -733,14 +739,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 80
-  rotating: 0
+  rotating: 1
 --- !u!64 &632717247
 MeshCollider:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 632717241}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 343d0fa96d421944dbf60a1c627737c7, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -1236,7 +1242,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floor: {fileID: 632717242}
   mCol: {fileID: 1680138748}
-  delay: 0.1
+  delay: 0.05
   height: 2.4
 --- !u!23 &1680138746
 MeshRenderer:
@@ -1280,7 +1286,7 @@ MeshCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1680138743}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 343d0fa96d421944dbf60a1c627737c7, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -1379,7 +1385,7 @@ MeshCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1707210023}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 343d0fa96d421944dbf60a1c627737c7, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -1448,7 +1454,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 60
   orthographic: 0

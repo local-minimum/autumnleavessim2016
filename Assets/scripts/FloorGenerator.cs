@@ -477,6 +477,8 @@ public class FloorGenerator : MonoBehaviour {
             yield break;
         }
 
+        PlayerController.Instance.playerActive = false;
+        GetComponentInParent<RotateMe>().rotating = true;
         generated = false;
         generating = true;
         verts.Clear();
@@ -573,7 +575,7 @@ public class FloorGenerator : MonoBehaviour {
 			mesh.RecalculateBounds ();
 			mesh.RecalculateNormals ();
 
-            yield return new WaitForSeconds (0.1f);
+            yield return new WaitForSeconds (0.01f);
 
 		}
 

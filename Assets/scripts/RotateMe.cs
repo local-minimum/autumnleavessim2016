@@ -6,8 +6,7 @@ public class RotateMe : MonoBehaviour {
     [SerializeField]
     float speed = 0.1f;
 
-    [SerializeField]
-    bool rotating = true;
+    public bool rotating = true;
 	
 	void Update () {
 

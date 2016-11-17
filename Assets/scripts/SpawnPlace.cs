@@ -70,6 +70,7 @@ public class SpawnPlace : MonoBehaviour {
             
         }
 
+        GetComponentInParent<RotateMe>().rotating = false;
         PlayerController.Instance.Spawn(transform);
 
     }

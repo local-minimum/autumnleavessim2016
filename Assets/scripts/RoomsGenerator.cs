@@ -110,7 +110,7 @@ public class RoomsGenerator : MonoBehaviour {
         perimeter.Clear();
         perimeter.AddRange(ProcGenHelpers.Simplify(floor.GetCircumferance(false).Select(v => transform.InverseTransformPoint(v)).ToList()));        
 
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.05f);
         for (int i=0, l=perimeter.Count; i< l; i++)
         {            
             Vector3 pt = perimeter[i];
@@ -128,7 +128,7 @@ public class RoomsGenerator : MonoBehaviour {
         }
 
        
-        yield return new WaitForSeconds(0.1f);
+        yield return new WaitForSeconds(0.01f);
         int attempts = 0;
         while (rooms > 0 && attempts < 300)
         {
@@ -160,7 +160,7 @@ public class RoomsGenerator : MonoBehaviour {
             }
 
             attempts++;
-            yield return new WaitForSeconds(addedRoom ? 0.4f : 0.01f);
+            yield return new WaitForSeconds(addedRoom ? 0.05f : 0.01f);
         }
 
         Debug.LogWarning(string.Format("Ended with remaining {0} rooms after {1} attempts", rooms, attempts));
@@ -168,10 +168,10 @@ public class RoomsGenerator : MonoBehaviour {
         foreach (List<Vector3> innerWall in wallLines)
         {
             ConstructInnerWall(innerWall);
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.05f);
             innerWall.Reverse();
             ConstructInnerWall(innerWall);
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.05f);
         }
 
 
@@ -249,7 +249,7 @@ public class RoomsGenerator : MonoBehaviour {
             float flexPos = longest - 2 * shortestWall;
             int nextI = (idLong + 1) % perimeter.Count;
             float t = (Random.value * flexPos + shortestWall) / longest;
-            Debug.Log(t);
+            //Debug.Log(t);
             Vector3 pt = Vector3.Lerp(perimeter[idLong], perimeter[nextI], t);
 
             Vector3 d = ProcGenHelpers.Get90CW(pt - perimeter[idLong]).normalized;
@@ -364,7 +364,7 @@ public class RoomsGenerator : MonoBehaviour {
 
             if (isKnown)
             {
-                Debug.Log("Inner wall collided with previously known wall");
+                //Debug.Log("Inner wall collided with previously known wall");
             }
             else if (ProcGenHelpers.CollidesWith(newWall, perimeter, true, out testIndex, out pathIndex))
             {

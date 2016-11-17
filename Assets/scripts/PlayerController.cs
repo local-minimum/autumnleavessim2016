@@ -9,6 +9,11 @@ public class PlayerController : MonoBehaviour {
     {
         get
         {
+            if (instance == null)
+            {
+                instance = FindObjectOfType<PlayerController>();
+                instance.Start();
+            }
             return instance;
         }
     }
@@ -26,14 +31,29 @@ public class PlayerController : MonoBehaviour {
     Collider[] colliders;
 
     [SerializeField]
-    float rotoVertFactor = 50;
+    float headVertSensitivity = 20;
 
     [SerializeField]
-    float rotoHorFactor = 50;
+    float headHorSensitivity = 20;
+
+    [SerializeField]
+    float maxWalkSq = 10;
+
+    [SerializeField]
+    float walkFactor = 2;
+
+    float walkCapF = 0.2f;
+
+    [SerializeField]
+    float rotationSensitivity = 20;
+
+    [SerializeField]
+    float velocityDecay = 2f;
 
     bool canWalk;
+    bool started = false;
 
-    bool playerActive
+    public bool playerActive
     {
         set
         {
@@ -67,15 +87,19 @@ public class PlayerController : MonoBehaviour {
 
         transform.rotation = target.rotation;
         transform.position = target.position + target.up * transform.TransformVector(feet.localPosition).magnitude;
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.2f);
         playerActive = true;
     }
 
 	void Start () {
-        colliders = GetComponents<Collider>();
-        rb = GetComponent<Rigidbody>();
-        instance = this;
-        playerActive = false;
+        if (!started)
+        {
+            started = true;
+            colliders = GetComponents<Collider>();
+            rb = GetComponent<Rigidbody>();
+            instance = this;
+            playerActive = false;
+        }
 	}
 
     float ClampAngleNegPos(float v, float a, float b)
@@ -98,11 +122,37 @@ public class PlayerController : MonoBehaviour {
     {
         if (canWalk)
         {
-            Vector3 newEuler = new Vector3(Input.GetAxis("LookVertical") * rotoVertFactor, Input.GetAxis("LookHorizontal") * rotoHorFactor) * Time.deltaTime + head.localEulerAngles;
+            Vector3 newEuler = new Vector3(-Input.GetAxis("LookVertical") * headVertSensitivity, Input.GetAxis("LookHorizontal") * headHorSensitivity) * Time.deltaTime + head.localEulerAngles;
             newEuler.x = ClampAngleNegPos(newEuler.x, -10, 40);
             newEuler.y = ClampAngleNegPos(newEuler.y, -20, 20);
             newEuler.z = 0f;
             head.localEulerAngles = newEuler;
+
+            float walkImpulse = Input.GetAxis("Walk");
+            if (Mathf.Abs(walkImpulse) > 0.02f)
+            {
+                rb.velocity += transform.forward * walkImpulse * walkFactor * Time.deltaTime;
+                float m2 = rb.velocity.sqrMagnitude;
+                if (m2 > maxWalkSq)
+                {
+                    rb.velocity = rb.velocity.normalized * Mathf.Sqrt(Mathf.Lerp(maxWalkSq, m2, walkCapF));
+                }
+            } else
+            {
+                float m = rb.velocity.magnitude;
+                if (m < 0.1f)
+                {
+                    rb.velocity = Vector3.zero;
+                }
+                else {
+                    rb.velocity = rb.velocity.normalized * m * Mathf.Clamp01(1 - velocityDecay * Time.deltaTime);
+                }
+            }
+            Vector3 roto = transform.localEulerAngles;
+            roto.y += Input.GetAxis("Rotate") * rotationSensitivity;
+            roto.z = 0;
+            roto.x = 0;
+            transform.localEulerAngles = roto;
         }
     }
 }
