@@ -347,7 +347,8 @@ public class RoomsGenerator : MonoBehaviour {
             bool isKnown = false;
             for (int idW=0, wL=newWall.Count; idW < wL - 1; idW++)
             {
-                if (ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], true, perimeter) || ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], wallLines))
+                if (ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], true, perimeter) || 
+                    ProcGenHelpers.IsKnownSegment(newWall[idW], newWall[idW + 1], wallLines))
                 {
                     isKnown = true;
                     break;
@@ -370,22 +371,17 @@ public class RoomsGenerator : MonoBehaviour {
                     Debug.Log("Collides with inner wall");
                 }
                 else {
-                    //Debug.Log("Inner wall allowed");
-                    if (wallLines.Contains(newWall))
+
+                    //Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
+                    wallLines.Add(newWall);
+                    room = true;
+                    if (newWall.Count == 3)
                     {
-                        Debug.LogWarning("Dupe wall");
+                        convex.Add(newWall[1]);
                     }
-                    else {
-                        //Debug.Log(string.Format("Added curved wall {0} {1} {2}", newWall.Count, newWall[0], newWall[newWall.Count -1]));
-                        wallLines.Add(newWall);
-                        room = true;
-                        if (newWall.Count == 3)
-                        {
-                            convex.Add(newWall[1]);
-                        }
                      
-                        break;
-                    }
+                    break;
+                    
                 }
             }
         }
@@ -407,8 +403,8 @@ public class RoomsGenerator : MonoBehaviour {
             directions.Add((perimeter[(idA + 1) % perimeter.Count] - a).normalized);
             directions.Add((perimeter[(perimeter.Count + (idA - 1)) % perimeter.Count] - a).normalized);
 
-            AddGizmoWall(a, a + directions[0]);
-            AddGizmoWall(a, a + directions[1]);
+            //AddGizmoWall(a, a + directions[0]);
+            //AddGizmoWall(a, a + directions[1]);
 
         }
 
@@ -421,9 +417,11 @@ public class RoomsGenerator : MonoBehaviour {
                     idA = iWall.IndexOf(a);
                     directions.Add((a - iWall[idA - 1]).normalized);
                     directions.Add((a - iWall[idA + 1]).normalized);
+                    directions.Add((iWall[idA - 1] - a).normalized);
+                    directions.Add((iWall[idA + 1] - a).normalized);
 
-                    AddGizmoWall(a, a + directions[0]);
-                    AddGizmoWall(a, a + directions[1]);
+                    //AddGizmoWall(a, a + directions[0]);
+                    //AddGizmoWall(a, a + directions[1]);
 
                     break;
                 }
@@ -625,7 +623,15 @@ public class RoomsGenerator : MonoBehaviour {
 
     void OnDrawGizmosSelected()
     {
+        /*
         Gizmos.color = Color.magenta;
+        for (int i=0, l=perimeter.Count; i< l; i++)
+        {
+            Vector3 pos = transform.TransformPoint(perimeter[i]);
+            Vector3 nextPos = transform.TransformPoint(perimeter[(i + 1) % l]);
+            Gizmos.DrawLine(pos, nextPos);
+            Gizmos.DrawSphere(pos, 1f * gizmoSize);
+        }*/ 
 
         Gizmos.color = Color.blue;
         foreach(Vector3 v in nonConcave)

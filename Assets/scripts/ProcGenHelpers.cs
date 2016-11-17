@@ -166,6 +166,9 @@ public static class ProcGenHelpers
 
     public static bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<Vector3> line, out Vector3 pt)
     {
+        bool any = false;
+        float minT = 0;
+        pt = Vector3.one;
 
         for (int i = 0, l = line.Count; i < l; i++)
         {
@@ -185,13 +188,16 @@ public static class ProcGenHelpers
             float t2 = Vector3.Dot(v1, v3) / Vector3.Dot(v2, v3);
             if (t2 >= 0 && t2 <= 1 && t1 < 0)
             {
-                pt = Vector3.Lerp(q1, q2, t2);
-                return true;
+                if (!any || Mathf.Abs(t1) < minT)
+                {
+                    minT = Mathf.Abs(t1);
+                    pt = Vector3.Lerp(q1, q2, t2);
+                    any = true;
+                }
             }
         }
 
-        pt = Vector3.zero;
-        return false;
+        return any;
     }
 
     public static bool RayInterceptsSegment(Vector3 source, Vector3 direction, List<List<Vector3>> lines, out Vector3 pt, out int idLine)
@@ -258,10 +264,7 @@ public static class ProcGenHelpers
         if (end - start == 1 || circular && end - start == wall.Count - 1)
         {
             return true;
-        } else
-        {
-            Debug.Log(Mathf.Abs(start - end));
-        }
+        } 
 
         int l = wall.Count;
 
