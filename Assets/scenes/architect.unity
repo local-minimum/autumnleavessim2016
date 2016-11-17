@@ -1210,9 +1210,9 @@ GameObject:
   - 33: {fileID: 1680138747}
   - 23: {fileID: 1680138746}
   - 64: {fileID: 1680138748}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: OuterWalls
-  m_TagString: Untagged
+  m_TagString: OuterWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1305,9 +1305,9 @@ GameObject:
   - 33: {fileID: 1707210027}
   - 23: {fileID: 1707210026}
   - 64: {fileID: 1707210028}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: RoomMaker
-  m_TagString: Untagged
+  m_TagString: InnerWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
