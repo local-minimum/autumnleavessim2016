@@ -52,6 +52,13 @@ public class PlayerController : MonoBehaviour {
 
     bool canWalk;
     bool started = false;
+    bool playerPause = false;
+
+    [SerializeField]
+    KeyCode deactivateKey;
+
+    [SerializeField]
+    UIPointLock pointer;
 
     public bool playerActive
     {
@@ -64,6 +71,10 @@ public class PlayerController : MonoBehaviour {
             canvas.gameObject.SetActive(value);
             canWalk = value;
             rb.isKinematic = !value;
+            if (true)
+            {
+                playerPause = false;
+            }
         }
     }
 
@@ -116,6 +127,26 @@ public class PlayerController : MonoBehaviour {
             }
         }
         return v;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(deactivateKey))
+        {
+            if (canWalk || playerPause)
+            {
+                if (playerPause)
+                {
+                    playerActive = true;
+                    pointer.enabled = true;
+                } else
+                {
+                    playerActive = false;
+                    pointer.enabled = false;
+                    playerPause = true;
+                }
+            }
+        }
     }
 
     void LateUpdate()

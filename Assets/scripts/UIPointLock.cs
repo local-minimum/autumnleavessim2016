@@ -9,9 +9,6 @@ public class UIPointLock : MonoBehaviour {
 	Image centerCursor;
 
 	[SerializeField]
-	KeyCode deactivateKey;
-
-	[SerializeField]
 	float maxDist = 10;
 
 	[SerializeField]
@@ -36,9 +33,6 @@ public class UIPointLock : MonoBehaviour {
 	}
 
 	void Update() {
-		if (Input.GetKeyDown(deactivateKey)) { 	
-			this.enabled = false;
-		}
 		if (Input.GetMouseButtonUp (0)) {
 			MessageInteractionTarget ();
 		}
