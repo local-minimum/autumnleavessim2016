@@ -370,7 +370,6 @@ GameObject:
   - 114: {fileID: 167721482}
   - 54: {fileID: 167721477}
   - 136: {fileID: 167721481}
-  - 65: {fileID: 167721480}
   - 135: {fileID: 167721479}
   m_Layer: 0
   m_Name: Body
@@ -443,18 +442,6 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 0.2
   m_Center: {x: 0, y: 0, z: 0}
---- !u!65 &167721480
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 167721475}
-  m_Material: {fileID: 13400000, guid: e384a81f4bc05f245a473339343e42dc, type: 2}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 0.5, y: 0.7, z: 0.3}
-  m_Center: {x: 0, y: -0.86, z: 0}
 --- !u!136 &167721481
 CapsuleCollider:
   m_ObjectHideFlags: 0
