@@ -17,7 +17,10 @@ public class PlayerController : MonoBehaviour {
             return instance;
         }
     }
-    
+
+    [SerializeField]
+    LineRenderer lRend;
+
     [SerializeField]
     Transform head;
 
@@ -60,6 +63,25 @@ public class PlayerController : MonoBehaviour {
     [SerializeField]
     UIPointLock pointer;
 
+    float modRayTime = 0;
+
+    [SerializeField]
+    float modRaySpeed = 1;
+
+    [SerializeField]
+    Transform modRaySource;
+
+    [SerializeField]
+    float modRayMaxLength = 10;
+
+    [SerializeField]
+    LayerMask modLayers;
+
+    [SerializeField]
+    ParticleSystem modRayEdge;
+
+    bool modRayHitting = false;
+
     public bool playerActive
     {
         set
@@ -74,6 +96,9 @@ public class PlayerController : MonoBehaviour {
             if (true)
             {
                 playerPause = false;
+            } else
+            {
+                modRayTime = 0;
             }
         }
     }
@@ -129,8 +154,20 @@ public class PlayerController : MonoBehaviour {
         return v;
     }
 
+
     void Update()
     {
+        if (!playerPause)
+        {
+            if (Input.GetButton("Fire"))
+            {
+                ElongateModificationRay();
+            } else if (Input.GetButtonUp("Fire"))
+            {
+                ActivateModificationRay();
+            }
+        }
+
         if (Input.GetKeyDown(deactivateKey))
         {
             if (canWalk || playerPause)
@@ -186,4 +223,66 @@ public class PlayerController : MonoBehaviour {
             transform.localEulerAngles = roto;
         }
     }
+
+    Vector3 hitPoint = Vector3.zero;
+
+    void ElongateModificationRay()
+    {
+
+        //Make camera ray;
+        Ray camRay = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2f, Screen.height / 2f));
+        RaycastHit camRayHit;
+        
+
+        if (Physics.Raycast(camRay, out camRayHit, modRayMaxLength, modLayers, QueryTriggerInteraction.Ignore)) {
+            modRayTime += modRaySpeed * Time.deltaTime;
+            hitPoint = camRayHit.point;
+            Vector3 modRayTarget = modRaySource.InverseTransformPoint(hitPoint);            
+            modRayTime = Mathf.Clamp(modRayTime, 0, modRayTarget.magnitude);
+
+            lRend.SetPosition(1, modRayTarget.normalized * modRayTime);
+
+            modRayEdge.transform.position = modRaySource.TransformPoint( modRayTarget.normalized * modRayTime * 0.95f);
+
+            modRayHitting = true;
+
+        } else
+        {
+            modRayTime = 0;
+            lRend.SetPosition(1, Vector3.zero);
+            modRayHitting = false;
+        }      
+        
+        if (modRayHitting)
+        {
+            if (!modRayEdge.isPlaying)
+            {
+                modRayEdge.Play();
+            } else
+            {
+                //modRayEdge.Stop();
+            }
+        }  
+
+    }
+
+    void ActivateModificationRay()
+    {
+
+        lRend.SetPosition(1, Vector3.zero);
+        modRayTime = 0;
+        modRayHitting = false;
+        modRayEdge.Stop();
+    }
+
+    /*
+    void OnDrawGizmos()
+    {
+        if (modRayHitting)
+        {
+            Gizmos.DrawLine(modRaySource.position, hitPoint);
+        }
+    }
+
+    */
 }
