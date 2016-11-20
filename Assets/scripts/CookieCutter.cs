@@ -116,6 +116,7 @@ public class CookieCutter : MonoBehaviour {
     }
 
     List<int> cuttingLines = new List<int>();
+    List<Vector3> cutRim = new List<Vector3>();
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
@@ -136,29 +137,38 @@ public class CookieCutter : MonoBehaviour {
 
         Debug.Log(string.Format("Will cut {0}, {1} triangles {2} cutting lines", dough, tris.Count / 3, nLines));
 
+        cutRim.Clear();
 
-        for (int i=0, l=tris.Count/3; i< l; i+=3)
+        //TODO: Something is wrong due to mesh scale it seems?
+
+        for (int i=0, l=tris.Count; i< l; i+=3)
         {
             Vector3 v1 = verts[tris[i]];
             Vector3 v2 = verts[tris[i + 1]];
             Vector3 v3 = verts[tris[i + 2]];
-
+            Debug.Log("Tri " + i);
             for (int j = 0; j < nLines; j++) {
                 Vector3[] line = cutterLines[j];
                 Vector3 pt;
                 if (ProcGenHelpers.LineSegmentInterceptPlane(v1, v2, v3, line[0], line[1], out pt)) {
 
-                    Debug.Log(string.Format("Tri {0}, Line {1} intercepts plane.", i, j));
-                    if (!cuttingLines.Contains(j))
-                    {
-                        cuttingLines.Add(j);
-                    }
+                    Debug.Log(string.Format("Tri {0}, Line {1} intercepts plane {3} {4} {5} at {2}.", i, j, pt, v1, v2, v3));
+
                     if (ProcGenHelpers.PointInTriangle(v1, v2, v3, pt))
                     {
                         Debug.Log("Found triangle that needs cutting");
+                        if (!cuttingLines.Contains(j))
+                        {
+                            cuttingLines.Add(j);
+                            if (!cutRim.Contains(pt))
+                            {
+                                cutRim.Add(pt);
+                            }
+                        }
                     }
                 }
             }
+            
         }
 
         Mesh cutDough = new Mesh();
@@ -183,6 +193,12 @@ public class CookieCutter : MonoBehaviour {
             Gizmos.color = cuttingLines.Contains(i) ? Color.red : Color.cyan;
             Gizmos.DrawLine(l[0], l[1]);
             i++;
+        }
+
+        Gizmos.color = Color.magenta;
+        for (int j=0, l=cutRim.Count; j<l; j++)
+        {
+            Gizmos.DrawLine(transform.TransformPoint(cutRim[j]), transform.TransformPoint(cutRim[(j + 1) % l]));
         }
     }
 }
