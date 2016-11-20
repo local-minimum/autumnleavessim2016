@@ -97,6 +97,9 @@ public class PlayerController : MonoBehaviour {
 
     RaycastHit modRayCamHit;
 
+    [SerializeField]
+    bool startActive = false;
+
     public bool playerActive
     {
         set
@@ -149,7 +152,7 @@ public class PlayerController : MonoBehaviour {
             colliders = GetComponents<Collider>();
             rb = GetComponent<Rigidbody>();
             instance = this;
-            playerActive = false;
+            playerActive = startActive;
         }
 	}
 
