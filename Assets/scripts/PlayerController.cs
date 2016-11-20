@@ -1,7 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
+public enum ModRayStates { Offline, Elongating, PowerUp, Fire };
+
+public delegate void ModRayActivation(RaycastHit hit);
+public delegate void ModRayStateChange(ModRayStates oldState, ModRayStates state);
+
 public class PlayerController : MonoBehaviour {
+
+    public event ModRayActivation OnModRayActivation;
+    public event ModRayStateChange OnModRayStateChage;
 
     static PlayerController instance;
 
@@ -80,7 +88,14 @@ public class PlayerController : MonoBehaviour {
     [SerializeField]
     ParticleSystem modRayEdge;
 
-    bool modRayHitting = false;
+    [SerializeField]
+    float modRayHitActivationTime = 2f;
+
+    float modRayHitInit;
+
+    ModRayStates modRayHitting = ModRayStates.Offline;
+
+    RaycastHit modRayCamHit;
 
     public bool playerActive
     {
@@ -93,7 +108,7 @@ public class PlayerController : MonoBehaviour {
             canvas.gameObject.SetActive(value);
             canWalk = value;
             rb.isKinematic = !value;
-            if (true)
+            if (value)
             {
                 playerPause = false;
             } else
@@ -159,12 +174,15 @@ public class PlayerController : MonoBehaviour {
     {
         if (!playerPause)
         {
-            if (Input.GetButton("Fire"))
+            if (modRayHitting == ModRayStates.Offline && Input.GetButtonDown("Fire"))
+            {
+                ElongateModificationRay();
+            } else if (modRayHitting != ModRayStates.Offline && Input.GetButton("Fire"))
             {
                 ElongateModificationRay();
             } else if (Input.GetButtonUp("Fire"))
             {
-                ActivateModificationRay();
+                DeactivateModRay();
             }
         }
 
@@ -231,48 +249,97 @@ public class PlayerController : MonoBehaviour {
 
         //Make camera ray;
         Ray camRay = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2f, Screen.height / 2f));
-        RaycastHit camRayHit;
         
 
-        if (Physics.Raycast(camRay, out camRayHit, modRayMaxLength, modLayers, QueryTriggerInteraction.Ignore)) {
+        if (Physics.Raycast(camRay, out modRayCamHit, modRayMaxLength, modLayers, QueryTriggerInteraction.Ignore)) {
+
+
             modRayTime += modRaySpeed * Time.deltaTime;
-            hitPoint = camRayHit.point;
-            Vector3 modRayTarget = modRaySource.InverseTransformPoint(hitPoint);            
-            modRayTime = Mathf.Clamp(modRayTime, 0, modRayTarget.magnitude);
+            hitPoint = modRayCamHit.point;
+            Vector3 modRayTarget = modRaySource.InverseTransformPoint(hitPoint);
+            float hitDistance = modRayTarget.magnitude;
+            
+            modRayTime = Mathf.Clamp(modRayTime, 0, hitDistance);
+
+            ModRayStates oldHitState = modRayHitting;
+            modRayHitting = modRayTime < 0.999f * hitDistance ? ModRayStates.Elongating : ModRayStates.PowerUp;
+            if ((oldHitState == ModRayStates.Offline || oldHitState == ModRayStates.Elongating) && modRayHitting == ModRayStates.PowerUp)
+            {
+                if (!modRayEdge.isPlaying)
+                {
+                    modRayEdge.Play();
+                }
+                modRayEdge.Emit(Random.Range(50, 200));
+                modRayHitInit = Time.timeSinceLevelLoad;
+                
+            } else if (Time.timeSinceLevelLoad - modRayHitInit > modRayHitActivationTime && modRayHitting == ModRayStates.PowerUp)
+            {                
+                modRayHitting = ModRayStates.Fire;
+                modRayEdge.Emit(Random.Range(100, 400));
+            }
+
+            if (oldHitState != modRayHitting && OnModRayStateChage != null)
+            {
+                OnModRayStateChage(oldHitState, modRayHitting);
+            }
 
             lRend.SetPosition(1, modRayTarget.normalized * modRayTime);
 
-            modRayEdge.transform.position = modRaySource.TransformPoint( modRayTarget.normalized * modRayTime * 0.95f);
-
-            modRayHitting = true;
-
-        } else
-        {
-            modRayTime = 0;
-            lRend.SetPosition(1, Vector3.zero);
-            modRayHitting = false;
-        }      
-        
-        if (modRayHitting)
-        {
-            if (!modRayEdge.isPlaying)
+            modRayEdge.transform.position = modRaySource.TransformPoint( modRayTarget.normalized * modRayTime * 0.93f);            
+            
+            if (modRayHitting == ModRayStates.Elongating)
             {
-                modRayEdge.Play();
+                modRayEdge.transform.LookAt(head);
             } else
             {
-                //modRayEdge.Stop();
+                modRayEdge.transform.rotation = Quaternion.LookRotation(modRayCamHit.normal, Vector3.up);
             }
-        }  
+
+            
+        } else
+        {
+            if (modRayHitting != ModRayStates.Offline && OnModRayStateChage != null)
+            {
+                OnModRayStateChage(modRayHitting, ModRayStates.Offline);
+            } 
+            modRayHitting = ModRayStates.Offline;
+        }      
+        
+        if (modRayHitting == ModRayStates.Fire)
+        {
+            ActivateModificationRay();
+        }
+        else if (modRayHitting == ModRayStates.Offline)
+        {
+            DeactivateModRay();
+        }
 
     }
 
     void ActivateModificationRay()
     {
+        if (OnModRayActivation != null)
+        {
+            OnModRayActivation(modRayCamHit);
+        }
+        DeactivateModRay();
+    }
 
+    void DeactivateModRay()
+    {
         lRend.SetPosition(1, Vector3.zero);
         modRayTime = 0;
-        modRayHitting = false;
+
+        if (modRayHitting != ModRayStates.Offline && OnModRayStateChage != null)
+        {
+            OnModRayStateChage(modRayHitting, ModRayStates.Offline);
+        }
+        modRayHitting = ModRayStates.Offline;
+
         modRayEdge.Stop();
+        modRayHitInit = -modRayHitActivationTime;
+
+
     }
 
     /*
