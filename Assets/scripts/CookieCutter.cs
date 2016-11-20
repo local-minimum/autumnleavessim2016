@@ -14,63 +14,87 @@ public class CookieCutter : MonoBehaviour {
         get
         {
             Vector3 pt = transform.position;
-            Vector3 scale = transform.TransformDirection(boxSize / 2f);
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z - scale.z),
-                new Vector3(pt.x + scale.x, pt.y - scale.y, pt.z - scale.z)
+            Vector3 x = transform.right * boxSize.x / 2f;
+            Vector3 x2 = -transform.right * boxSize.x / 2f;
+
+            Vector3 y = transform.up * boxSize.y / 2f;
+            Vector3 y2 = -transform.up * boxSize.y / 2f;
+
+            Vector3 z = transform.forward * boxSize.z / 2f;
+            Vector3 z2 = -transform.forward * boxSize.z / 2f;
+
+            yield return new Vector3[2]
+            {
+                pt + x2 + y2 + z2,
+                pt + x + y2 + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z - scale.z),
-                new Vector3(pt.x - scale.x, pt.y + scale.y, pt.z - scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y2 + z2,
+                pt + x2 + y + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z - scale.z),
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z + scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y2 + z,
+                pt + x2 + y2 + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z + scale.z),
-                new Vector3(pt.x - scale.x, pt.y + scale.y, pt.z + scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y2 + z,
+                pt + x2 + y + z
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y - scale.y, pt.z + scale.z),
-                new Vector3(pt.x = scale.x, pt.y - scale.y, pt.z + scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y2 + z,
+                pt + x + y2 + z
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y + scale.y, pt.z + scale.z),
-                new Vector3(pt.x - scale.x, pt.y + scale.y, pt.z - scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y + z,
+                pt + x2 + y + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x - scale.x, pt.y + scale.y, pt.z + scale.z),
-                new Vector3(pt.x + scale.x, pt.y + scale.y, pt.z + scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y + z,
+                pt + x + y + z
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x + scale.x, pt.y + scale.y, pt.z + scale.z),
-                new Vector3(pt.x + scale.x, pt.y + scale.y, pt.z - scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x2 + y + z2,
+                pt + x + y + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x + scale.x, pt.y + scale.y, pt.z + scale.z),
-                new Vector3(pt.x + scale.x, pt.y - scale.y, pt.z + scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x + y + z,
+                pt + x + y2 + z
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x + scale.x, pt.y - scale.y, pt.z + scale.z),
-                new Vector3(pt.x + scale.x, pt.y - scale.y, pt.z - scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x + y + z2,
+                pt + x + y2 + z2
             };
 
-            yield return new Vector3[2] {
-                new Vector3(pt.x + scale.x, pt.y + scale.y, pt.z - scale.z),
-                new Vector3(pt.x + scale.x, pt.y - scale.y, pt.z - scale.z)
+            yield return new Vector3[2]
+            {
+                pt + x + y2 + z,
+                pt + x + y2 + z2
             };
 
+            yield return new Vector3[2]
+            {
+                pt + x + y + z,
+                pt + x + y + z2
+            };
         }
     }
 
@@ -123,7 +147,11 @@ public class CookieCutter : MonoBehaviour {
 
     public void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(transform.position, transform.TransformDirection(boxSize));
+
+        Gizmos.color = Color.red;
+        foreach(Vector3[] l in CutterLines)
+        {
+            Gizmos.DrawLine(l[0], l[1]);
+        }
     }
 }
