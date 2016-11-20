@@ -320,23 +320,30 @@ public static class ProcGenHelpers
 
     public static bool LineSegmentInterceptPlane(Vector3 planePt1, Vector3 planePt2, Vector3 planePt3, Vector3 linePtA, Vector3 linePtB, out Vector3 intercept)
     {
-        Vector3 ray = (linePtB - linePtA).normalized;
 
-        Vector3 normal = Vector3.Cross(planePt2 - planePt1, planePt3 - planePt1).normalized;
+        Vector3 direction = (linePtB - linePtA); //Have verified I don't need norming this
+        
+        Ray r = new Ray(linePtA, direction); //Origin, direction
 
-        float d = Vector3.Dot(normal, planePt1);
-
-        float normDotRay = Vector3.Dot(normal, ray);
-        if (normDotRay == 0)
-        {
-            intercept = Vector3.zero;
-            return false;
+        Vector3 normal = Vector3.Cross((planePt2 - planePt1).normalized, (planePt3 - planePt1).normalized);
+        Plane p = new Plane(-normal, planePt1); // in normal, in point
+        float t = -1;
+        bool hit = p.Raycast(r, out t); //Gives time on 
+        
+        if (hit && (t < 0 || t > direction.magnitude)) {
+            //Debug.Log(t);
+            //Debug.Log(direction.magnitude);
+            hit = false;
         }
 
-        float t = (d - Vector3.Dot(normal, linePtA)) / normDotRay;
-
-        intercept = linePtA + ray * t;
-        return true;
+        if (hit)
+        {
+            intercept = r.GetPoint(t);            
+        } else
+        {
+            intercept = Vector3.zero;
+        }
+        return hit;
     }
 
     static Vector2 PlanarPoint(Vector3 v, Vector3 x, Vector3 y)

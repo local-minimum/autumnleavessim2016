@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class CookieCutter : MonoBehaviour {
 
@@ -102,25 +103,27 @@ public class CookieCutter : MonoBehaviour {
     {
         Debug.Log("Attempting cuts");
 
-        foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize), transform.rotation, collisionLayers)) 
+        foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize) / 2f, transform.rotation, collisionLayers)) 
         {
             MeshFilter mFilt = col.GetComponent<MeshFilter>();
             if (mFilt != null)
             {
-                CutDough(mFilt.sharedMesh, mFilt);
-                
+                CutDough(mFilt.sharedMesh, mFilt);                
             }
             
         }
         
     }
 
+    List<int> cuttingLines = new List<int>();
+
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
-        Debug.Log("Will cut " + dough);
+
+        cuttingLines.Clear();
 
         List<Vector3> verts = new List<Vector3>();
-        verts.AddRange(dough.vertices);
+        verts.AddRange(dough.vertices);                
 
         List<Vector2> uv = new List<Vector2>();
         uv.AddRange(dough.uv);
@@ -128,9 +131,34 @@ public class CookieCutter : MonoBehaviour {
         List<int> tris = new List<int>();
         tris.AddRange(dough.triangles);
 
-        for (int i=0, l=tris.Count/3; i< l; i++)
-        {
+        List<Vector3[]> cutterLines = CutterLines.Select(l => new Vector3[2] { transform.InverseTransformPoint(l[0]), transform.InverseTransformPoint(l[1])}).ToList();
+        int nLines = cutterLines.Count;
 
+        Debug.Log(string.Format("Will cut {0}, {1} triangles {2} cutting lines", dough, tris.Count / 3, nLines));
+
+
+        for (int i=0, l=tris.Count/3; i< l; i+=3)
+        {
+            Vector3 v1 = verts[tris[i]];
+            Vector3 v2 = verts[tris[i + 1]];
+            Vector3 v3 = verts[tris[i + 2]];
+
+            for (int j = 0; j < nLines; j++) {
+                Vector3[] line = cutterLines[j];
+                Vector3 pt;
+                if (ProcGenHelpers.LineSegmentInterceptPlane(v1, v2, v3, line[0], line[1], out pt)) {
+
+                    Debug.Log(string.Format("Tri {0}, Line {1} intercepts plane.", i, j));
+                    if (!cuttingLines.Contains(j))
+                    {
+                        cuttingLines.Add(j);
+                    }
+                    if (ProcGenHelpers.PointInTriangle(v1, v2, v3, pt))
+                    {
+                        Debug.Log("Found triangle that needs cutting");
+                    }
+                }
+            }
         }
 
         Mesh cutDough = new Mesh();
@@ -148,10 +176,13 @@ public class CookieCutter : MonoBehaviour {
     public void OnDrawGizmosSelected()
     {
 
-        Gizmos.color = Color.red;
+  
+        int i = 0;
         foreach(Vector3[] l in CutterLines)
         {
+            Gizmos.color = cuttingLines.Contains(i) ? Color.red : Color.cyan;
             Gizmos.DrawLine(l[0], l[1]);
+            i++;
         }
     }
 }
