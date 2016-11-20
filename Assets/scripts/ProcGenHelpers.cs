@@ -13,6 +13,10 @@ public static class ProcGenHelpers
         return lhs.x * rhs.z - lhs.z * rhs.x;
     }
 
+    public static float Cross(Vector2 lhs, Vector2 rhs)
+    {
+        return lhs.x * rhs.y - lhs.y * rhs.x;
+    }
 
     public static int Sign(float v)
     {
@@ -312,5 +316,47 @@ public static class ProcGenHelpers
                 yield return walls[i];
             }
         }
+    }
+
+    public static bool LineSegmentInterceptPlane(Vector3 planePt1, Vector3 planePt2, Vector3 planePt3, Vector3 linePtA, Vector3 linePtB, out Vector3 intercept)
+    {
+        Vector3 ray = (linePtB - linePtA).normalized;
+
+        Vector3 normal = Vector3.Cross(planePt2 - planePt1, planePt3 - planePt1).normalized;
+
+        float d = Vector3.Dot(normal, planePt1);
+
+        float normDotRay = Vector3.Dot(normal, ray);
+        if (normDotRay == 0)
+        {
+            intercept = Vector3.zero;
+            return false;
+        }
+
+        float t = (d - Vector3.Dot(normal, linePtA)) / normDotRay;
+
+        intercept = linePtA + ray * t;
+        return true;
+    }
+
+    static Vector2 PlanarPoint(Vector3 v, Vector3 x, Vector3 y)
+    {
+        return new Vector2(Vector2.Dot(v, x), Vector2.Dot(v, y));
+    }
+
+    public static bool PointInTriangle(Vector3 triPt1, Vector3 triPt2, Vector3 triPt3, Vector3 pt)
+    {
+        Vector3 x = triPt2 - triPt1;
+        Vector3 y = triPt3 - triPt1;
+
+        Vector2 pt1 = PlanarPoint(triPt1 - pt, x, y);
+        Vector2 pt2 = PlanarPoint(triPt2 - pt, x, y);
+        Vector2 pt3 = PlanarPoint(triPt3 - pt, x, y);
+
+        int s1 = Sign(Cross(pt1, pt2));
+        int s2 = Sign(Cross(pt2, pt3));
+        int s3 = Sign(Cross(pt3, pt1));
+
+        return s1 != 0 && s1 == s2 && s2 == s3;
     }
 }
