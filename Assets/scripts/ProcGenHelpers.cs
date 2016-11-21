@@ -398,4 +398,44 @@ public static class ProcGenHelpers
     {
         return Vector3.Cross(p2 - p1, p3 - p1).normalized;
     }
+
+    public static bool LineSegmentInterceptIn3D(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2, out float timeA, out float timeB)
+    {
+        timeA = -1;
+        timeB = -1;
+
+        Vector3 directionA = a2 - a1;
+        Vector3 directionB = b2 - b1;
+
+        if (directionA.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        if (directionB.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        Vector3 aToB = a1 - b1;
+
+        float f1343 = Vector3.Dot(aToB, directionB);
+        float f4321 = Vector3.Dot(directionB, directionA);
+        float f1321 = Vector3.Dot(aToB, directionA);
+        float f4343 = Vector3.Dot(directionB, directionB);
+        float f2121 = Vector3.Dot(directionA, directionA);
+
+        float denom = f2121 * f4343 - f4321 * f4321;
+        if (Mathf.Abs(denom) < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        float numer = f1343 * f4321 - f1321 * f4343;
+
+        timeA = numer / denom;
+        timeB = (f1343 + f4321 * timeA) / f4343;
+
+        return true;
+    }
 }

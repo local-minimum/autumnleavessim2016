@@ -191,9 +191,25 @@ public class CookieCutter : MonoBehaviour {
 
         for (int i = 0, l = tris.Count; i < l; i += 3)
         {
-            Vector3 v1 = verts[tris[i]];
-            Vector3 v2 = verts[tris[i + 1]];
-            Vector3 v3 = verts[tris[i + 2]];
+            bool originalRemoved = false;
+            int indexV1 = tris[i];
+            int indexV2 = tris[i + 1];
+            int indexV3 = tris[i + 2];
+
+            Vector3 v1 = verts[indexV1];
+            Vector3 v2 = verts[indexV2];
+            Vector3 v3 = verts[indexV3];
+   
+            Vector2 uv1 = uv[indexV1];
+            Vector2 uv2 = uv[indexV2];
+            Vector2 uv3 = uv[indexV3];
+
+            Vector3 d21 = (v2 - v1).normalized;
+            Vector3 d32 = (v3 - v2).normalized;
+            Vector3 d13 = (v1 - v3).normalized;
+            float t12 = Vector3.Distance(v1, v2);
+            float t23 = Vector3.Distance(v2, v3);
+            float t31 = Vector3.Distance(v3, v1);
 
             bool removeV1 = ProcGenHelpers.PointInConvexPolygon(v1, cutRim);
             bool removeV2 = ProcGenHelpers.PointInConvexPolygon(v2, cutRim);
@@ -202,7 +218,99 @@ public class CookieCutter : MonoBehaviour {
             if (removeV1 && removeV2 && removeV3)
             {
                 tris.RemoveRange(i, 3);
+                uv.RemoveRange(i, 3);
+                verts.RemoveRange(i, 3);
                 i -= 3;
+                l -= 3;
+            } else
+            {
+                //Assuming everything is in a plane
+                
+                float tTri12;
+                float tTri23;
+                float tTri31;
+                float tCut12;
+                float tCut23;
+                float tCut31;
+                int idC = 0;
+                int cutRimL = cutRim.Count;
+                bool intercept12 = ProcGenHelpers.LineSegmentInterceptIn3D(v1, v2, cutRim[idC], cutRim[idC + 1], out tTri12, out tCut12);
+                bool intercept23 = ProcGenHelpers.LineSegmentInterceptIn3D(v2, v3, cutRim[idC], cutRim[idC + 1], out tTri23, out tCut23);
+                bool intercept31 = ProcGenHelpers.LineSegmentInterceptIn3D(v3, v1, cutRim[idC], cutRim[idC + 1], out tTri31, out tCut31);
+
+                if (!originalRemoved && (intercept12 || intercept23 || intercept31))
+                {
+                    // Remove triangle will build new ones
+                    tris.RemoveRange(i, 3);                    
+                    i -= 3;
+                    l -= 3;
+                    originalRemoved = true;
+                }
+
+                if (intercept12 && intercept23) {
+                    if (tCut12 > tCut23)
+                    {
+                        if (removeV2)
+                        {
+                            // V2 is inside the cutout triangle needs splitting up if tCut != t2Cut
+
+                            if (Mathf.Abs(tCut12 - tCut23) < Mathf.Epsilon)
+                            {
+                                //In this case V2 is actually on the line between cutRim[idC] and cutRim[idC + 1]
+                                //we need not do a thing
+
+                            }
+                            else
+                            {
+                                // Cuts existing triangle short and adds new one
+
+                                verts[indexV2] = v1 + d21 * tTri12;
+                                uv[indexV2] = Vector2.Lerp(uv1, uv2, tTri12 / t12);
+
+                                int n = verts.Count;
+
+                                verts.Add(v2 + d32 * tTri23);
+                                uv.Add(Vector2.Lerp(uv2, uv3, tTri23 / t23));
+
+                                tris.Add(indexV1);
+                                tris.Add(indexV2);
+                                tris.Add(indexV3);
+
+                                tris.Add(indexV3);
+                                tris.Add(indexV2);
+                                tris.Add(n);
+                            }
+
+                            removeV2 = false;
+
+                        }
+                        else
+                        {
+                            int n = verts.Count;
+
+                            verts.Add(v1 + d21 * tTri12);
+                            uv.Add(Vector2.Lerp(uv1, uv2, tTri12 / t12));
+
+                            verts.Add(v2 + d32 * tTri23);
+                            uv.Add(Vector2.Lerp(uv2, uv3, tTri23 / t23));
+
+                            tris.Add(indexV1);
+                            tris.Add(n);
+                            tris.Add(n + 1);
+
+                            tris.Add(indexV3);
+                            tris.Add(n);
+                            tris.Add(n + 1);
+
+                        }
+
+                    } else
+                    {
+
+                    }
+
+                }
+
             }
         }
 
