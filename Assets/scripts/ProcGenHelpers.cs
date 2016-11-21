@@ -367,16 +367,17 @@ public static class ProcGenHelpers
         return s1 != 0 && s1 == s2 && s2 == s3;
     }
 
-    public static bool PointInPolygon(Vector3 pt, Vector3[] orderedPolygon)
+    public static bool PointInConvexPolygon(Vector3 pt, List<Vector3> orderedPolygon)
     {
-        if (orderedPolygon.Length < 3)
+        int l = orderedPolygon.Count;
+        if (l < 3)
         {
             throw new System.ArgumentException("A polygon must be at least a triangle");
         }
 
         Vector3 norm = TriangleNormal(pt, orderedPolygon[0], orderedPolygon[1]);
 
-        for (int i=1,l=orderedPolygon.Length; i< l; i++)
+        for (int i=1; i< l; i++)
         {
             if (Sign(Vector3.Dot(norm, TriangleNormal(pt, orderedPolygon[i], orderedPolygon[(i + 1) % l]))) != 1)
             {

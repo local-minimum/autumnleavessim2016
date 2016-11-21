@@ -189,6 +189,24 @@ public class CookieCutter : MonoBehaviour {
             cutRim.Clear();
         }
 
+        for (int i = 0, l = tris.Count; i < l; i += 3)
+        {
+            Vector3 v1 = verts[tris[i]];
+            Vector3 v2 = verts[tris[i + 1]];
+            Vector3 v3 = verts[tris[i + 2]];
+
+            bool removeV1 = ProcGenHelpers.PointInConvexPolygon(v1, cutRim);
+            bool removeV2 = ProcGenHelpers.PointInConvexPolygon(v2, cutRim);
+            bool removeV3 = ProcGenHelpers.PointInConvexPolygon(v3, cutRim);
+
+            if (removeV1 && removeV2 && removeV3)
+            {
+                tris.RemoveRange(i, 3);
+                i -= 3;
+            }
+        }
+
+
         Mesh cutDough = new Mesh();
         cutDough.name = dough.name + ".CCut";
 
