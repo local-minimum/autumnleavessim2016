@@ -171,6 +171,24 @@ public class CookieCutter : MonoBehaviour {
             
         }
 
+        //Assuming cube-cutting for now
+        if (cutRim.Count == 4)
+        {
+            //Test if order of corners is scrabled
+            if (Vector3.Dot(ProcGenHelpers.TriangleNormal(cutRim[0], cutRim[1], cutRim[2]), ProcGenHelpers.TriangleNormal(cutRim[0], cutRim[2], cutRim[3])) < 0.5f)
+            {
+                Vector3 tmp = cutRim[2];
+                cutRim[2] = cutRim[3];
+                cutRim[3] = tmp;
+            }
+
+        }
+        else if (cutRim.Count != 3)
+        {
+            Debug.LogError("Cutting rim got un-expected number of verts " + cutRim.Count);
+            cutRim.Clear();
+        }
+
         Mesh cutDough = new Mesh();
         cutDough.name = dough.name + ".CCut";
 

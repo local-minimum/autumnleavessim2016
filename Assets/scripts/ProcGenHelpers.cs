@@ -366,4 +366,35 @@ public static class ProcGenHelpers
 
         return s1 != 0 && s1 == s2 && s2 == s3;
     }
+
+    public static bool PointInPolygon(Vector3 pt, Vector3[] orderedPolygon)
+    {
+        if (orderedPolygon.Length < 3)
+        {
+            throw new System.ArgumentException("A polygon must be at least a triangle");
+        }
+
+        Vector3 norm = TriangleNormal(pt, orderedPolygon[0], orderedPolygon[1]);
+
+        for (int i=1,l=orderedPolygon.Length; i< l; i++)
+        {
+            if (Sign(Vector3.Dot(norm, TriangleNormal(pt, orderedPolygon[i], orderedPolygon[(i + 1) % l]))) != 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Gives the normal given the points are in CCW order.
+    /// </summary>
+    /// <param name="p1"></param>
+    /// <param name="p2"></param>
+    /// <param name="p3"></param>
+    /// <returns></returns>
+    public static Vector3 TriangleNormal(Vector3 p1, Vector3 p2, Vector3 p3)
+    {
+        return Vector3.Cross(p2 - p1, p3 - p1).normalized;
+    }
 }
