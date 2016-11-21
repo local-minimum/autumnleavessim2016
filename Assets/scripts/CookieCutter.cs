@@ -117,13 +117,15 @@ public class CookieCutter : MonoBehaviour {
 
     List<int> cuttingLines = new List<int>();
     List<Vector3> cutRim = new List<Vector3>();
+    List<Vector3> verts = new List<Vector3>();
+    Transform doughTransform = null;
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
-
+        doughTransform = mFilt.transform;
         cuttingLines.Clear();
 
-        List<Vector3> verts = new List<Vector3>();
+        verts.Clear();
         verts.AddRange(dough.vertices);                
 
         List<Vector2> uv = new List<Vector2>();
@@ -132,14 +134,12 @@ public class CookieCutter : MonoBehaviour {
         List<int> tris = new List<int>();
         tris.AddRange(dough.triangles);
 
-        List<Vector3[]> cutterLines = CutterLines.Select(l => new Vector3[2] { transform.InverseTransformPoint(l[0]), transform.InverseTransformPoint(l[1])}).ToList();
+        List<Vector3[]> cutterLines = CutterLines.Select(l => new Vector3[2] { doughTransform.InverseTransformPoint(l[0]), doughTransform.InverseTransformPoint(l[1])}).ToList();
         int nLines = cutterLines.Count;
 
-        Debug.Log(string.Format("Will cut {0}, {1} triangles {2} cutting lines", dough, tris.Count / 3, nLines));
+        //Debug.Log(string.Format("Will cut {0}, {1} triangles {2} cutting lines", dough, tris.Count / 3, nLines));
 
         cutRim.Clear();
-
-        //TODO: Something is wrong due to mesh scale it seems?
 
         for (int i=0, l=tris.Count; i< l; i+=3)
         {
@@ -195,10 +195,13 @@ public class CookieCutter : MonoBehaviour {
             i++;
         }
 
-        Gizmos.color = Color.magenta;
-        for (int j=0, l=cutRim.Count; j<l; j++)
+        if (doughTransform != null)
         {
-            Gizmos.DrawLine(transform.TransformPoint(cutRim[j]), transform.TransformPoint(cutRim[(j + 1) % l]));
+            Gizmos.color = Color.magenta;
+            for (int j = 0, l = cutRim.Count; j < l; j++)
+            {
+                Gizmos.DrawLine(doughTransform.TransformPoint(cutRim[j]), doughTransform.TransformPoint(cutRim[(j + 1) % l]));
+            }
         }
     }
 }
