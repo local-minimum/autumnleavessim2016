@@ -146,17 +146,17 @@ public class CookieCutter : MonoBehaviour {
             Vector3 v1 = verts[tris[i]];
             Vector3 v2 = verts[tris[i + 1]];
             Vector3 v3 = verts[tris[i + 2]];
-            Debug.Log("Tri " + i);
+            //Debug.Log("Tri " + i);
             for (int j = 0; j < nLines; j++) {
                 Vector3[] line = cutterLines[j];
                 Vector3 pt;
                 if (ProcGenHelpers.LineSegmentInterceptPlane(v1, v2, v3, line[0], line[1], out pt)) {
 
-                    Debug.Log(string.Format("Tri {0}, Line {1} intercepts plane {3} {4} {5} at {2}.", i, j, pt, v1, v2, v3));
+                    //Debug.Log(string.Format("Tri {0}, Line {1} intercepts plane {3} {4} {5} at {2}.", i, j, pt, v1, v2, v3));
 
                     if (ProcGenHelpers.PointInTriangle(v1, v2, v3, pt))
                     {
-                        Debug.Log("Found triangle that needs cutting");
+                        //Debug.Log("Found triangle that needs cutting");
                         if (!cuttingLines.Contains(j))
                         {
                             cuttingLines.Add(j);
@@ -188,6 +188,8 @@ public class CookieCutter : MonoBehaviour {
             Debug.LogError("Cutting rim got un-expected number of verts " + cutRim.Count);
             cutRim.Clear();
         }
+
+        int cutRimL = cutRim.Count;
 
         for (int i = 0, l = tris.Count; i < l; i += 3)
         {
@@ -222,70 +224,103 @@ public class CookieCutter : MonoBehaviour {
                 verts.RemoveRange(i, 3);
                 i -= 3;
                 l -= 3;
-            } else
+            }
+            else
             {
                 //Assuming everything is in a plane
-                
-                float tTri12;
-                float tTri23;
-                float tTri31;
-                float tCut12;
-                float tCut23;
-                float tCut31;
-                int idC = 0;
-                int cutRimL = cutRim.Count;
-                bool intercept12 = ProcGenHelpers.LineSegmentInterceptIn3D(v1, v2, cutRim[idC], cutRim[idC + 1], out tTri12, out tCut12);
-                bool intercept23 = ProcGenHelpers.LineSegmentInterceptIn3D(v2, v3, cutRim[idC], cutRim[idC + 1], out tTri23, out tCut23);
-                bool intercept31 = ProcGenHelpers.LineSegmentInterceptIn3D(v3, v1, cutRim[idC], cutRim[idC + 1], out tTri31, out tCut31);
 
-                if (!originalRemoved && (intercept12 || intercept23 || intercept31))
+                for (int idC = 0; idC < cutRimL; idC++)
                 {
-                    // Remove triangle will build new ones
-                    tris.RemoveRange(i, 3);                    
-                    i -= 3;
-                    l -= 3;
-                    originalRemoved = true;
-                }
 
-                if (intercept12 && intercept23) {
-                    if (tCut12 > tCut23)
+                    float tTri12;
+                    float tTri23;
+                    float tTri31;
+                    float tCut12;
+                    float tCut23;
+                    float tCut31;
+
+                    int nextIdC = (idC + 1) % cutRimL;
+                    bool intercept12 = ProcGenHelpers.LineSegmentInterceptIn3D(v1, v2, cutRim[idC], cutRim[nextIdC], out tTri12, out tCut12);
+                    bool intercept23 = ProcGenHelpers.LineSegmentInterceptIn3D(v2, v3, cutRim[idC], cutRim[nextIdC], out tTri23, out tCut23);
+                    bool intercept31 = ProcGenHelpers.LineSegmentInterceptIn3D(v3, v1, cutRim[idC], cutRim[nextIdC], out tTri31, out tCut31);
+
+                    if (!originalRemoved && (intercept12 || intercept23 || intercept31))
                     {
-                        if (removeV2)
-                        {
-                            // V2 is inside the cutout triangle needs splitting up if tCut != t2Cut
+                        // Remove triangle will build new ones
+                        tris.RemoveRange(i, 3);
+                        i -= 3;
+                        l -= 3;
+                        originalRemoved = true;
+                    }
 
-                            if (Mathf.Abs(tCut12 - tCut23) < Mathf.Epsilon)
+                    if (intercept12 && intercept23)
+                    {
+                        if (tCut12 > tCut23)
+                        {
+                            if (removeV2)
                             {
-                                //In this case V2 is actually on the line between cutRim[idC] and cutRim[idC + 1]
-                                //we need not do a thing
+                                // V2 is inside the cutout triangle needs splitting up if tCut != t2Cut
+
+                                if (Mathf.Abs(tCut12 - tCut23) < Mathf.Epsilon)
+                                {
+                                    //In this case V2 is actually on the line between cutRim[idC] and cutRim[idC + 1]
+                                    //we need not do a thing
+
+                                }
+                                else
+                                {
+                                    // Cuts existing triangle short and adds new one
+                                    Debug.Log("Two lines pass through cutter line, make two tris (replace/remove existing vert)");
+
+                                    verts[indexV2] = v1 + d21 * tTri12;
+                                    uv[indexV2] = Vector2.Lerp(uv1, uv2, tTri12 / t12);
+
+                                    int n = verts.Count;
+
+                                    verts.Add(v2 + d32 * tTri23);
+                                    uv.Add(Vector2.Lerp(uv2, uv3, tTri23 / t23));
+
+                                    tris.Add(indexV1);
+                                    tris.Add(indexV2);
+                                    tris.Add(indexV3);
+
+                                    tris.Add(indexV3);
+                                    tris.Add(indexV2);
+                                    tris.Add(n);
+                                }
+
+                                removeV2 = false;
 
                             }
                             else
                             {
-                                // Cuts existing triangle short and adds new one
-
-                                verts[indexV2] = v1 + d21 * tTri12;
-                                uv[indexV2] = Vector2.Lerp(uv1, uv2, tTri12 / t12);
-
+                                //Make two triangles
+                                Debug.Log("Two lines pass through cutter line, make two tris");
                                 int n = verts.Count;
+
+                                verts.Add(v1 + d21 * tTri12);
+                                uv.Add(Vector2.Lerp(uv1, uv2, tTri12 / t12));
 
                                 verts.Add(v2 + d32 * tTri23);
                                 uv.Add(Vector2.Lerp(uv2, uv3, tTri23 / t23));
 
                                 tris.Add(indexV1);
-                                tris.Add(indexV2);
-                                tris.Add(indexV3);
-
-                                tris.Add(indexV3);
-                                tris.Add(indexV2);
                                 tris.Add(n);
-                            }
+                                tris.Add(n + 1);
 
-                            removeV2 = false;
+                                tris.Add(indexV3);
+                                tris.Add(n);
+                                tris.Add(n + 1);
+
+                            }
 
                         }
                         else
                         {
+
+                            //Pointy bit of cut triangle
+                            Debug.Log("Two lines pass through cutter line, sharp, make one tris");
+
                             int n = verts.Count;
 
                             verts.Add(v1 + d21 * tTri12);
@@ -294,24 +329,18 @@ public class CookieCutter : MonoBehaviour {
                             verts.Add(v2 + d32 * tTri23);
                             uv.Add(Vector2.Lerp(uv2, uv3, tTri23 / t23));
 
-                            tris.Add(indexV1);
-                            tris.Add(n);
-                            tris.Add(n + 1);
 
-                            tris.Add(indexV3);
                             tris.Add(n);
+                            tris.Add(indexV2);
                             tris.Add(n + 1);
-
                         }
-
-                    } else
-                    {
 
                     }
 
                 }
 
             }
+
         }
 
 
