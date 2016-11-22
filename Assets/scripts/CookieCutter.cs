@@ -209,6 +209,7 @@ public class CookieCutter : MonoBehaviour {
             Vector3 d21 = (v2 - v1).normalized;
             Vector3 d32 = (v3 - v2).normalized;
             Vector3 d13 = (v1 - v3).normalized;
+
             float t12 = Vector3.Distance(v1, v2);
             float t23 = Vector3.Distance(v2, v3);
             float t31 = Vector3.Distance(v3, v1);
@@ -228,7 +229,7 @@ public class CookieCutter : MonoBehaviour {
             else
             {
                 //Assuming everything is in a plane
-
+                float proxThreshold = 0.0001f;
                 for (int idC = 0; idC < cutRimL; idC++)
                 {
 
@@ -240,9 +241,9 @@ public class CookieCutter : MonoBehaviour {
                     float tCut31;
 
                     int nextIdC = (idC + 1) % cutRimL;
-                    bool intercept12 = ProcGenHelpers.LineSegmentInterceptIn3D(v1, v2, cutRim[idC], cutRim[nextIdC], out tTri12, out tCut12);
-                    bool intercept23 = ProcGenHelpers.LineSegmentInterceptIn3D(v2, v3, cutRim[idC], cutRim[nextIdC], out tTri23, out tCut23);
-                    bool intercept31 = ProcGenHelpers.LineSegmentInterceptIn3D(v3, v1, cutRim[idC], cutRim[nextIdC], out tTri31, out tCut31);
+                    bool intercept12 = ProcGenHelpers.LineSegmentInterceptIn3D(v1, v2, cutRim[idC], cutRim[nextIdC], proxThreshold, out tTri12, out tCut12);
+                    bool intercept23 = ProcGenHelpers.LineSegmentInterceptIn3D(v2, v3, cutRim[idC], cutRim[nextIdC], proxThreshold, out tTri23, out tCut23);
+                    bool intercept31 = ProcGenHelpers.LineSegmentInterceptIn3D(v3, v1, cutRim[idC], cutRim[nextIdC], proxThreshold, out tTri31, out tCut31);
 
                     if (!originalRemoved && (intercept12 || intercept23 || intercept31))
                     {
@@ -333,6 +334,7 @@ public class CookieCutter : MonoBehaviour {
                             tris.Add(n);
                             tris.Add(indexV2);
                             tris.Add(n + 1);
+
                         }
 
                     }

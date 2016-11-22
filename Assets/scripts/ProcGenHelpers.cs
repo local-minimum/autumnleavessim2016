@@ -399,7 +399,7 @@ public static class ProcGenHelpers
         return Vector3.Cross(p2 - p1, p3 - p1).normalized;
     }
 
-    public static bool LineSegmentInterceptIn3D(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2, out float timeA, out float timeB)
+    public static bool LineSegmentInterceptIn3D(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2, float proximityThreshold, out float timeA, out float timeB)
     {
         timeA = -1;
         timeB = -1;
@@ -436,6 +436,14 @@ public static class ProcGenHelpers
         timeA = numer / denom;
         timeB = (f1343 + f4321 * timeA) / f4343;
 
-        return true;
+        if (timeA < 0 || timeA > directionA.magnitude)
+        {
+            return false;
+        } else if (timeB < 0 || timeB > directionB.magnitude)
+        {
+            return false;
+        }
+
+        return Vector3.Distance(a1 + directionA * timeA, b1 + directionB * timeB) < proximityThreshold;
     }
 }
