@@ -10,6 +10,9 @@ public class CookieCutter : MonoBehaviour {
     [SerializeField]
     Vector3 boxSize = Vector3.one;
 
+    [SerializeField]
+    bool showGizmoNormals = false;
+
     IEnumerable<Vector3[]> CutterLines
     {
         get
@@ -114,6 +117,8 @@ public class CookieCutter : MonoBehaviour {
             Vector3 z = transform.forward * boxSize.z / 2f;
             Vector3 z2 = -transform.forward * boxSize.z / 2f;
 
+            //DOWNS
+
             yield return new Vector3[3]
             {
                 pt + x2 + y2 + z2,
@@ -127,8 +132,86 @@ public class CookieCutter : MonoBehaviour {
                 pt + x + y2 + z2,
                 pt + x + y2 + z
             };
-            
 
+            //UPS
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y + z2,
+                pt + x2 + y + z,
+                pt + x + y + z2,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y + z,
+                pt + x + y + z,
+                pt + x + y + z2,
+            };
+
+            //LEFTS
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y2 + z2,
+                pt + x2 + y2 + z,
+                pt + x2 + y + z2,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y + z2,
+                pt + x2 + y2 + z,
+                pt + x2 + y + z,
+            };
+
+            //RIGHTS
+
+            yield return new Vector3[3]
+            {
+                pt + x + y2 + z2,
+                pt + x + y + z2,
+                pt + x + y2 + z,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x + y + z2,
+                pt + x + y + z,
+                pt + x + y2 + z,
+            };
+
+            //FORWARD
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y2 + z,
+                pt + x + y2 + z,
+                pt + x2 + y + z,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x + y + z,
+                pt + x2 + y + z,
+                pt + x + y2 + z,
+            };
+
+            //REVERSE
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y2 + z2,
+                pt + x2 + y + z2,
+                pt + x + y2 + z2,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x + y + z2,
+                pt + x + y2 + z2,
+                pt + x2 + y + z2,
+            };
         }
     }
 
@@ -434,9 +517,12 @@ public class CookieCutter : MonoBehaviour {
         Gizmos.color = Color.cyan;
         foreach(Vector3[] tri in Tris)
         {
-            Vector3 center = (tri[0] + tri[1] + tri[2]) / 3f;
-            Vector3 norm = Vector3.Cross((tri[1] - tri[0]), (tri[2] - tri[0])).normalized;
-            Gizmos.DrawLine(center, center + norm * 0.3f);
+            if (showGizmoNormals)
+            {
+                Vector3 center = (tri[0] + tri[1] + tri[2]) / 3f;
+                Vector3 norm = Vector3.Cross((tri[1] - tri[0]), (tri[2] - tri[0])).normalized;
+                Gizmos.DrawLine(center, center + norm * 0.3f);
+            }
             Gizmos.DrawLine(tri[0], tri[1]);
             Gizmos.DrawLine(tri[1], tri[2]);
             Gizmos.DrawLine(tri[2], tri[0]);
