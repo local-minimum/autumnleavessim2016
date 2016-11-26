@@ -120,14 +120,14 @@ public class CookieCutter : MonoBehaviour {
                 pt + x + y2 + z2,
                 pt + x2 + y2 + z,
             };
-
+            
             yield return new Vector3[3]
             {
                 pt + x2 + y2 + z,
                 pt + x + y2 + z2,
                 pt + x + y2 + z
             };
-
+            
 
         }
     }
@@ -165,15 +165,17 @@ public class CookieCutter : MonoBehaviour {
             //Debug.Log(string.Format("{0} - {1}, tri {2}", a, b, i));
             if (ProcGenHelpers.LineSegmentInterceptPlane(tri[0], tri[1], tri[2], a, b, out intercept))
             {
-                Debug.Log("In plane");
+                //Debug.Log("In plane");
+                //cuts.Add(intercept);
 
                 if (ProcGenHelpers.PointInTriangle(tri[0], tri[1], tri[2], intercept))
                 {
-                    Debug.Log("In Tri");
+                    //Debug.Log("In Tri");
                     cuts.Add(intercept);
 
                 }
             }
+            i++;
         }
 
         return cuts;
@@ -433,13 +435,13 @@ public class CookieCutter : MonoBehaviour {
         foreach(Vector3[] tri in Tris)
         {
             Vector3 center = (tri[0] + tri[1] + tri[2]) / 3f;
-            Vector3 norm = Vector3.Cross((tri[1] - tri[0]).normalized, (tri[2] - tri[0]).normalized).normalized;
+            Vector3 norm = Vector3.Cross((tri[1] - tri[0]), (tri[2] - tri[0])).normalized;
             Gizmos.DrawLine(center, center + norm * 0.3f);
             Gizmos.DrawLine(tri[0], tri[1]);
             Gizmos.DrawLine(tri[1], tri[2]);
             Gizmos.DrawLine(tri[2], tri[0]);
         }
-
+        /*
         if (doughTransform != null)
         {
             Gizmos.color = Color.magenta;
@@ -448,5 +450,6 @@ public class CookieCutter : MonoBehaviour {
                 Gizmos.DrawLine(doughTransform.TransformPoint(cutRim[j]), doughTransform.TransformPoint(cutRim[(j + 1) % l]));
             }
         }
+        */
     }
 }

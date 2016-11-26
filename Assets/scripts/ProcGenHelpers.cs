@@ -325,7 +325,7 @@ public static class ProcGenHelpers
         
         Ray r = new Ray(linePtA, direction); //Origin, direction
 
-        Vector3 normal = Vector3.Cross((planePt2 - planePt1).normalized, (planePt3 - planePt1).normalized);
+        Vector3 normal = Vector3.Cross((planePt2 - planePt1), (planePt3 - planePt1)).normalized;
         Plane p = new Plane(-normal, planePt1); // in normal, in point
         float t = -1;
         bool hit = p.Raycast(r, out t); //Gives time on 

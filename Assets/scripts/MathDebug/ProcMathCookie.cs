@@ -30,6 +30,7 @@ public class ProcMathCookie : MonoBehaviour {
                 {
                     Gizmos.DrawSphere(cuts[j], gizmoSize);
                 }
+                break;
             }
         }
     }
