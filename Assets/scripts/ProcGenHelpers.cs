@@ -448,4 +448,90 @@ public static class ProcGenHelpers
 
         return Vector3.Distance(a1 + directionA * timeA, b1 + directionB * timeB) < proximityThreshold;
     }
+
+    public static bool LineSegmentInterceptIn3D(Vector3 a1, Vector3 a2, Ray r, float proximityThreshold, out float timeA, out float timeB)
+    {
+        timeA = -1;
+        timeB = -1;
+
+        Vector3 directionA = a2 - a1;
+        Vector3 directionB = r.direction;
+
+        if (directionA.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        if (directionB.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        Vector3 aToB = a1 - r.origin;
+
+        float f1343 = Vector3.Dot(aToB, directionB);
+        float f4321 = Vector3.Dot(directionB, directionA);
+        float f1321 = Vector3.Dot(aToB, directionA);
+        float f4343 = Vector3.Dot(directionB, directionB);
+        float f2121 = Vector3.Dot(directionA, directionA);
+
+        float denom = f2121 * f4343 - f4321 * f4321;
+        if (Mathf.Abs(denom) < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        float numer = f1343 * f4321 - f1321 * f4343;
+
+        timeA = numer / denom;
+        timeB = (f1343 + f4321 * timeA) / f4343;
+
+        if (timeA < 0 || timeA > directionA.magnitude)
+        {
+            return false;
+        }
+        else if (timeB < 0)
+        {
+            return false;
+        }
+
+        return Vector3.Distance(a1 + directionA * timeA, r.GetPoint(timeB)) < proximityThreshold;
+    }
+
+    public static int Rotatition(Vector3 normal, Vector3 a, Vector3 b)
+    {
+        return Sign(Quaternion.Dot(Quaternion.LookRotation(a, normal), Quaternion.LookRotation(b, normal)));
+    }
+
+    public static bool InterceptionRay(Vector3 normA, Vector3 directionA, Vector3 intercept, Vector3 normB, out Ray r)
+    {
+        //Parallell stuff!
+        Vector3 u = Vector3.Cross(normB, normA);
+        if (u.sqrMagnitude < Mathf.Epsilon)
+        {
+            r = new Ray();
+            return false;
+        }
+        u = u.normalized;
+        int sign = Rotatition(normA, directionA, u);
+        r = new Ray(intercept, -sign * u);
+        return true;
+    }
+
+    public static Vector3 RayHitEdge(Vector3 a, Vector3 b, Vector3 c, Ray r, float proximity=0.001f)
+    {
+        float t1;
+        float t2;
+        if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2))
+        {
+            return r.GetPoint(t2);
+        } else if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2))
+        {
+            return r.GetPoint(t2);
+        } else if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2))
+        {
+            return r.GetPoint(t2);
+        }
+        return r.origin;
+    }
 }

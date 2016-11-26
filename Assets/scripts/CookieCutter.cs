@@ -236,7 +236,7 @@ public class CookieCutter : MonoBehaviour {
     List<Vector3> verts = new List<Vector3>();
     Transform doughTransform = null;
 
-    public List<Vector3> CutsLineAt(Vector3 a, Vector3 b)
+    public List<Vector3> CutsLineAt(Vector3 a, Vector3 b, Vector3 n)
     {
         List<Vector3> cuts = new List<Vector3>();
 
@@ -253,8 +253,22 @@ public class CookieCutter : MonoBehaviour {
 
                 if (ProcGenHelpers.PointInTriangle(tri[0], tri[1], tri[2], intercept))
                 {
-                    //Debug.Log("In Tri");
+                    Vector3 triNorm = Vector3.Cross(tri[1] - tri[0], tri[2] - tri[0]).normalized;
+
+                    //Debug.Log("In Tri");                    
                     cuts.Add(intercept);
+
+                    //TODO: Make correct
+
+                    Ray r;
+                    if (ProcGenHelpers.InterceptionRay(n, (b - a).normalized, intercept, triNorm, out r))
+                    {
+                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(tri[0], tri[1], tri[2], r);
+                        if (Vector3.SqrMagnitude(rayHit - intercept) > Mathf.Epsilon)
+                        {
+                            cuts.Add(rayHit);
+                        }
+                    }
 
                 }
             }
