@@ -348,7 +348,7 @@ public static class ProcGenHelpers
 
     static Vector2 PlanarPoint(Vector3 v, Vector3 x, Vector3 y)
     {
-        return new Vector2(Vector2.Dot(v, x), Vector2.Dot(v, y));
+        return new Vector2(Vector3.Dot(v, x), Vector3.Dot(v, y));
     }
 
     public static bool PointInTriangle(Vector3 triPt1, Vector3 triPt2, Vector3 triPt3, Vector3 pt)
@@ -363,7 +363,9 @@ public static class ProcGenHelpers
         int s1 = Sign(Cross(pt1, pt2));
         int s2 = Sign(Cross(pt2, pt3));
         int s3 = Sign(Cross(pt3, pt1));
-
+        Debug.Log(string.Format("{0} {1} {2}", triPt1 - pt, triPt2 - pt, triPt3 - pt));
+        Debug.Log(string.Format("{0} {1} {2}", pt1, pt2, pt3));
+        Debug.Log(string.Format("{0} {1} {2}", s1, s2, s3));
         return s1 != 0 && s1 == s2 && s2 == s3;
     }
 

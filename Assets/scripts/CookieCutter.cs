@@ -99,6 +99,39 @@ public class CookieCutter : MonoBehaviour {
         }
     }
 
+    public IEnumerable<Vector3[]> Tris
+    {
+        get
+        {
+            Vector3 pt = transform.position;
+
+            Vector3 x = transform.right * boxSize.x / 2f;
+            Vector3 x2 = -transform.right * boxSize.x / 2f;
+
+            Vector3 y = transform.up * boxSize.y / 2f;
+            Vector3 y2 = -transform.up * boxSize.y / 2f;
+
+            Vector3 z = transform.forward * boxSize.z / 2f;
+            Vector3 z2 = -transform.forward * boxSize.z / 2f;
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y2 + z2,
+                pt + x + y2 + z2,
+                pt + x2 + y2 + z,
+            };
+
+            yield return new Vector3[3]
+            {
+                pt + x2 + y2 + z,
+                pt + x + y2 + z2,
+                pt + x + y2 + z
+            };
+
+
+        }
+    }
+
     public void Cut()
     {
         Debug.Log("Attempting cuts");
@@ -119,6 +152,32 @@ public class CookieCutter : MonoBehaviour {
     List<Vector3> cutRim = new List<Vector3>();
     List<Vector3> verts = new List<Vector3>();
     Transform doughTransform = null;
+
+    public List<Vector3> CutsLineAt(Vector3 a, Vector3 b)
+    {
+        List<Vector3> cuts = new List<Vector3>();
+
+        Vector3 intercept = Vector3.zero;
+
+        int i = 0;
+        foreach (Vector3[] tri in Tris)
+        {
+            //Debug.Log(string.Format("{0} - {1}, tri {2}", a, b, i));
+            if (ProcGenHelpers.LineSegmentInterceptPlane(tri[0], tri[1], tri[2], a, b, out intercept))
+            {
+                Debug.Log("In plane");
+
+                if (ProcGenHelpers.PointInTriangle(tri[0], tri[1], tri[2], intercept))
+                {
+                    Debug.Log("In Tri");
+                    cuts.Add(intercept);
+
+                }
+            }
+        }
+
+        return cuts;
+    }
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
@@ -361,13 +420,24 @@ public class CookieCutter : MonoBehaviour {
     public void OnDrawGizmosSelected()
     {
 
-  
+        /*  
         int i = 0;
         foreach(Vector3[] l in CutterLines)
-        {
+        {            
             Gizmos.color = cuttingLines.Contains(i) ? Color.red : Color.cyan;
             Gizmos.DrawLine(l[0], l[1]);
             i++;
+        }*/
+
+        Gizmos.color = Color.cyan;
+        foreach(Vector3[] tri in Tris)
+        {
+            Vector3 center = (tri[0] + tri[1] + tri[2]) / 3f;
+            Vector3 norm = Vector3.Cross((tri[1] - tri[0]).normalized, (tri[2] - tri[0]).normalized).normalized;
+            Gizmos.DrawLine(center, center + norm * 0.3f);
+            Gizmos.DrawLine(tri[0], tri[1]);
+            Gizmos.DrawLine(tri[1], tri[2]);
+            Gizmos.DrawLine(tri[2], tri[0]);
         }
 
         if (doughTransform != null)
