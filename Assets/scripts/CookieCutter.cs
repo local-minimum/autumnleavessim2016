@@ -165,11 +165,11 @@ public class CookieCutter : MonoBehaviour {
     void CalculateTriCenters()
     {
         myTriCenters.Clear();
-        for (int i = 0; i < myTrisCount; i++)
+        for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
         {
-            Vector3 vertA = myVerts[myTris[i * 3]];
-            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
-            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            Vector3 vertA = myVerts[myTris[v]];
+            Vector3 vertB = myVerts[myTris[v + 1]];
+            Vector3 vertC = myVerts[myTris[v + 2]];
             myTriCenters.Add((vertA + vertB + vertC) / 3f);
         }
     }
@@ -178,13 +178,37 @@ public class CookieCutter : MonoBehaviour {
     void CalculateTriNorms()
     {
         myTriNormals.Clear();
-        for (int i = 0; i < myTrisCount; i++)
+        for (int i = 0, v = 0; i < myTrisCount; i++, v+=3)
         {
-            Vector3 vertA = myVerts[myTris[i * 3]];
-            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
-            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            Vector3 vertA = myVerts[myTris[v]];
+            Vector3 vertB = myVerts[myTris[v + 1]];
+            Vector3 vertC = myVerts[myTris[v + 2]];
             myTriNormals.Add(Vector3.Cross(vertB - vertA, vertC - vertA).normalized);
         }
+    }
+
+    int GetNeighbourTri(int idVertLineA, int idVertLineB, int curTri)
+    {
+        for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
+        {
+            if (i == curTri)
+            {
+                continue;
+            }
+
+            int idVertA = myTris[v];
+            int idVertB = myTris[v + 1];
+            int idVertC = myTris[v + 2];
+
+            if (idVertLineA == idVertA && (idVertLineB == idVertB || idVertLineB == idVertC) || 
+                idVertLineA == idVertB && (idVertLineB == idVertA || idVertLineB == idVertC) || 
+                idVertLineA == idVertC && (idVertLineB == idVertA || idVertLineB == idVertB))
+            {
+
+                return i;
+            }
+        }
+        return -1;
     }
 
     public void Cut()
@@ -214,11 +238,11 @@ public class CookieCutter : MonoBehaviour {
 
         Vector3 intercept = Vector3.zero;
 
-        for (int i = 0; i<myTrisCount; i++)       
+        for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
         {
-            Vector3 vertA = myVerts[myTris[i * 3]];
-            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
-            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            Vector3 vertA = myVerts[myTris[v]];
+            Vector3 vertB = myVerts[myTris[v + 1]];
+            Vector3 vertC = myVerts[myTris[v + 2]];
 
             //Debug.Log(string.Format("{0} - {1}, tri {2}", a, b, i));
             if (ProcGenHelpers.LineSegmentInterceptPlane(vertA, vertB, vertC, a, b, out intercept))
@@ -242,6 +266,7 @@ public class CookieCutter : MonoBehaviour {
                         Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
                         if (hitEdge != -1)
                         {
+                            Debug.Log(GetNeighbourTri(myTris[v + hitEdge], myTris[v + hitEdge + 1], i));
                             cuts.Add(rayHit);
                         }
                     }
