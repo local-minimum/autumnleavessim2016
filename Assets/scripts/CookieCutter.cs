@@ -102,116 +102,88 @@ public class CookieCutter : MonoBehaviour {
         }
     }
 
-    public IEnumerable<Vector3[]> Tris
+    Vector3[] myVerts = new Vector3[0];
+    int[] myTris = new int[0];
+    int myTrisCount = 0;
+    List<Vector3> myTriCenters = new List<Vector3>();
+    List<Vector3> myTriNormals = new List<Vector3>();
+
+    public void RecalculateMeshish()
     {
-        get
+
+        Vector3 pt = transform.position;
+
+        Vector3 x = transform.right * boxSize.x / 2f;
+        Vector3 x2 = -transform.right * boxSize.x / 2f;
+
+        Vector3 y = transform.up * boxSize.y / 2f;
+        Vector3 y2 = -transform.up * boxSize.y / 2f;
+
+        Vector3 z = transform.forward * boxSize.z / 2f;
+        Vector3 z2 = -transform.forward * boxSize.z / 2f;
+
+        myTris = new int[]
         {
-            Vector3 pt = transform.position;
-
-            Vector3 x = transform.right * boxSize.x / 2f;
-            Vector3 x2 = -transform.right * boxSize.x / 2f;
-
-            Vector3 y = transform.up * boxSize.y / 2f;
-            Vector3 y2 = -transform.up * boxSize.y / 2f;
-
-            Vector3 z = transform.forward * boxSize.z / 2f;
-            Vector3 z2 = -transform.forward * boxSize.z / 2f;
-
             //DOWNS
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y2 + z2,
-                pt + x + y2 + z2,
-                pt + x2 + y2 + z,
-            };
-            
-            yield return new Vector3[3]
-            {
-                pt + x2 + y2 + z,
-                pt + x + y2 + z2,
-                pt + x + y2 + z
-            };
-
+            0, 1, 2,
+            2, 1, 3,
             //UPS
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y + z2,
-                pt + x2 + y + z,
-                pt + x + y + z2,
-            };
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y + z,
-                pt + x + y + z,
-                pt + x + y + z2,
-            };
-
+            4, 5, 6,
+            5, 7, 6,
             //LEFTS
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y2 + z2,
-                pt + x2 + y2 + z,
-                pt + x2 + y + z2,
-            };
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y + z2,
-                pt + x2 + y2 + z,
-                pt + x2 + y + z,
-            };
-
+            0, 2, 4,
+            4, 2, 5,
             //RIGHTS
-
-            yield return new Vector3[3]
-            {
-                pt + x + y2 + z2,
-                pt + x + y + z2,
-                pt + x + y2 + z,
-            };
-
-            yield return new Vector3[3]
-            {
-                pt + x + y + z2,
-                pt + x + y + z,
-                pt + x + y2 + z,
-            };
-
+            1, 6, 3,
+            6, 7, 3,
             //FORWARD
-
-            yield return new Vector3[3]
-            {
-                pt + x2 + y2 + z,
-                pt + x + y2 + z,
-                pt + x2 + y + z,
-            };
-
-            yield return new Vector3[3]
-            {
-                pt + x + y + z,
-                pt + x2 + y + z,
-                pt + x + y2 + z,
-            };
-
+            2, 3, 5,
+            7, 5, 3,
             //REVERSE
+            0, 4, 1,
+            6, 1, 4,
+        };
 
-            yield return new Vector3[3]
-            {
-                pt + x2 + y2 + z2,
-                pt + x2 + y + z2,
-                pt + x + y2 + z2,
-            };
+        myVerts = new Vector3[]
+        {
+            pt + x2 + y2 + z2,  //0
+            pt + x + y2 + z2,   //1
+            pt + x2 + y2 + z,   //2
+            pt + x + y2 + z,    //3
+            pt + x2 + y + z2,   //4
+            pt + x2 + y + z,    //5
+            pt + x + y + z2,    //6
+            pt + x + y + z,     //7
 
-            yield return new Vector3[3]
-            {
-                pt + x + y + z2,
-                pt + x + y2 + z2,
-                pt + x2 + y + z2,
-            };
+        };
+
+        myTrisCount = myTris.Length / 3;
+        CalculateTriCenters();
+        CalculateTriNorms();
+    }
+
+    void CalculateTriCenters()
+    {
+        myTriCenters.Clear();
+        for (int i = 0; i < myTrisCount; i++)
+        {
+            Vector3 vertA = myVerts[myTris[i * 3]];
+            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
+            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            myTriCenters.Add((vertA + vertB + vertC) / 3f);
+        }
+    }
+
+
+    void CalculateTriNorms()
+    {
+        myTriNormals.Clear();
+        for (int i = 0; i < myTrisCount; i++)
+        {
+            Vector3 vertA = myVerts[myTris[i * 3]];
+            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
+            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            myTriNormals.Add(Vector3.Cross(vertB - vertA, vertC - vertA).normalized);
         }
     }
 
@@ -242,18 +214,24 @@ public class CookieCutter : MonoBehaviour {
 
         Vector3 intercept = Vector3.zero;
 
-        int i = 0;
-        foreach (Vector3[] tri in Tris)
+        //TODO: Should be elsewhere
+        RecalculateMeshish();
+
+        for (int i = 0; i<myTrisCount; i++)       
         {
+            Vector3 vertA = myVerts[myTris[i * 3]];
+            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
+            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+
             //Debug.Log(string.Format("{0} - {1}, tri {2}", a, b, i));
-            if (ProcGenHelpers.LineSegmentInterceptPlane(tri[0], tri[1], tri[2], a, b, out intercept))
+            if (ProcGenHelpers.LineSegmentInterceptPlane(vertA, vertB, vertC, a, b, out intercept))
             {
                 //Debug.Log("In plane");
                 //cuts.Add(intercept);
 
-                if (ProcGenHelpers.PointInTriangle(tri[0], tri[1], tri[2], intercept))
+                if (ProcGenHelpers.PointInTriangle(vertA, vertB, vertC, intercept))
                 {
-                    Vector3 triNorm = Vector3.Cross(tri[1] - tri[0], tri[2] - tri[0]).normalized;
+                    Vector3 triNorm = myTriNormals[i];
 
                     //Debug.Log("In Tri");                    
                     cuts.Add(intercept);
@@ -263,7 +241,7 @@ public class CookieCutter : MonoBehaviour {
                     Ray r;
                     if (ProcGenHelpers.InterceptionRay(n, (b - a).normalized, intercept, triNorm, out r))
                     {
-                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(tri[0], tri[1], tri[2], r);
+                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r);
                         if (Vector3.SqrMagnitude(rayHit - intercept) > Mathf.Epsilon)
                         {
                             cuts.Add(rayHit);
@@ -529,17 +507,21 @@ public class CookieCutter : MonoBehaviour {
         }*/
 
         Gizmos.color = Color.cyan;
-        foreach(Vector3[] tri in Tris)
+        for (int i=0; i<myTrisCount; i++)        
         {
+            Vector3 vertA = myVerts[myTris[i * 3]];
+            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
+            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+
             if (showGizmoNormals)
             {
-                Vector3 center = (tri[0] + tri[1] + tri[2]) / 3f;
-                Vector3 norm = Vector3.Cross((tri[1] - tri[0]), (tri[2] - tri[0])).normalized;
+                Vector3 center = myTriCenters[i];
+                Vector3 norm = myTriNormals[i];
                 Gizmos.DrawLine(center, center + norm * 0.3f);
             }
-            Gizmos.DrawLine(tri[0], tri[1]);
-            Gizmos.DrawLine(tri[1], tri[2]);
-            Gizmos.DrawLine(tri[2], tri[0]);
+            Gizmos.DrawLine(vertA, vertB);
+            Gizmos.DrawLine(vertB, vertC);
+            Gizmos.DrawLine(vertC, vertA);
         }
         /*
         if (doughTransform != null)

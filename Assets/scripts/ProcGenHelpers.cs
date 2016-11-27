@@ -363,9 +363,9 @@ public static class ProcGenHelpers
         int s1 = Sign(Cross(pt1, pt2));
         int s2 = Sign(Cross(pt2, pt3));
         int s3 = Sign(Cross(pt3, pt1));
-        Debug.Log(string.Format("{0} {1} {2}", triPt1 - pt, triPt2 - pt, triPt3 - pt));
-        Debug.Log(string.Format("{0} {1} {2}", pt1, pt2, pt3));
-        Debug.Log(string.Format("{0} {1} {2}", s1, s2, s3));
+        //Debug.Log(string.Format("{0} {1} {2}", triPt1 - pt, triPt2 - pt, triPt3 - pt));
+        //Debug.Log(string.Format("{0} {1} {2}", pt1, pt2, pt3));
+        //Debug.Log(string.Format("{0} {1} {2}", s1, s2, s3));
         return s1 != 0 && s1 == s2 && s2 == s3;
     }
 
