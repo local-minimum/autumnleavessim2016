@@ -537,7 +537,6 @@ public static class ProcGenHelpers
         float t2;
         List<KeyValuePair<int, float>> interceptTimes = new List<KeyValuePair<int, float>>();
 
-        
         if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
         {
             interceptTimes.Add(new KeyValuePair<int, float>(0, t2));

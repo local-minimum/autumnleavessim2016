@@ -18,7 +18,7 @@ public class ProcMathCookie : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        float thresholdPointToCutProximity = .005f;
+        float thresholdPointToCutProximity = .001f;
         Gizmos.color = Color.red;
         if (drawing)
         {
@@ -38,7 +38,7 @@ public class ProcMathCookie : MonoBehaviour {
 
                 cuts[i] = cutter
                     .GetLineCutIntercepts(l[i], nextV, n)
-                    .Where(v => Vector3.SqrMagnitude(v - l[i]) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)
+                    .Where(v => Vector3.SqrMagnitude(v - l[i]) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)                  
                     .Select(v => new { vert = v, dist = Vector3.SqrMagnitude(v - l[i]) })
                     .OrderBy(e => e.dist)
                     .Select(e => e.vert)
@@ -55,7 +55,7 @@ public class ProcMathCookie : MonoBehaviour {
             }
 
             Dictionary<int, List<Vector3>> interceptTris = cutter.GetInterceptTris(allIntercepts.ToArray());
-            Debug.Log("TRACING " + allIntercepts.Count());
+            //Debug.Log("TRACING " + allIntercepts.Count());
 
             if (allIntercepts.Count() == 1)
             {
@@ -69,7 +69,8 @@ public class ProcMathCookie : MonoBehaviour {
                         continue;
                     }
 
-                    for (int j = 0; j < cuts[i].Count(); j++)
+                    int j = Mathf.Min(0, cuts[i].Count() - 1);
+                    if (j == 0)
                     {
                         Vector3 intercept = cuts[i][j];
                         List<int> tris = interceptTris.Where(kvp => kvp.Value.Contains(intercept)).Select(kvp => kvp.Key).ToList();
@@ -80,40 +81,18 @@ public class ProcMathCookie : MonoBehaviour {
                             List<Vector3> cutLine = cutter.TraceSurface(tri, thirdVert, intercept, n, interceptTris);
                             if (cutLine.Count() > 0)
                             {
-                                cutLine.Insert(0, intercept);
-                                for (int k = 0, kLen = cutLine.Count() - 1; k < kLen; k++)
-                                {
-                                    Gizmos.DrawLine(cutLine[k], cutLine[k + 1]);
-                                }
-                                Vector3 last = cutLine.Last();
-
-                                //REMOVE INTERCEPTS THAT WE HAVE USED
-
-                                interceptTris[tri].Remove(intercept);
-
-
-                                for (int ii = 0; ii < cuts.Count(); ii++)
-                                {
-                                    if (cuts[ii].Contains(last))
+                                if (cutLine.Where((v, idV) => idV < cutLine.Count() - 1).All(v => ProcGenHelpers.PointInTriangle(l[0], l[1], l[2], v)))
+                                {                                    
+                                    cutLine.Insert(0, intercept);
+                                    for (int k = 0, kLen = cutLine.Count() - 1; k < kLen; k++)
                                     {
-                                        cuts[ii].Remove(last);
-                                        break;
-                                    }
-
-                                }
-
-                                foreach (int key in interceptTris.Keys)
-                                {
-                                    if (interceptTris[key].Contains(last))
-                                    {
-                                        interceptTris[key].Remove(last);
-                                        break;
+                                        Gizmos.DrawLine(cutLine[k], cutLine[k + 1]);
                                     }
                                 }
+                                
 
                             }
-                        }
-                        break;
+                        }                        
                     }
                 }
             }

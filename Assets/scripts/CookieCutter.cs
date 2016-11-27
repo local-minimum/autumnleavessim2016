@@ -347,7 +347,7 @@ public class CookieCutter : MonoBehaviour {
 
     }
 
-    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f, int searchDepth=10)
+    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f, int searchDepth=20)
     {
         List<Vector3> traceLine = new List<Vector3>();
         Vector3 orginalIntercept = intercept;
@@ -365,6 +365,8 @@ public class CookieCutter : MonoBehaviour {
                 Vector3 vertC = myVerts[myTris[v + 2]];
        
                 int hitEdge;
+
+                //TODO: Sensitive as edge condition in some rotations
                 Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
                 if (hitEdge == -1)
                 {
@@ -386,7 +388,7 @@ public class CookieCutter : MonoBehaviour {
 
                         if (hitIntercepts.Count > 0)
                         {
-                            Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
+                            //Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
                             traceLine.Add(hitIntercepts[0]);
                             return traceLine;
                         }
