@@ -18,6 +18,7 @@ public class ProcMathCookie : MonoBehaviour {
 
     void OnDrawGizmos()
     {
+        float thresholdPointToCutProximity = .005f;
         Gizmos.color = Color.red;
         if (drawing)
         {
@@ -33,8 +34,11 @@ public class ProcMathCookie : MonoBehaviour {
             for (int i = 0, len = l.Length; i < len; i++)
             {
 
+                Vector3 nextV = l[(i + 1) % len];
+
                 cuts[i] = cutter
-                    .GetLineCutIntercepts(l[i], l[(i + 1) % len], n)
+                    .GetLineCutIntercepts(l[i], nextV, n)
+                    .Where(v => Vector3.SqrMagnitude(v - l[i]) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)
                     .Select(v => new { vert = v, dist = Vector3.SqrMagnitude(v - l[i]) })
                     .OrderBy(e => e.dist)
                     .Select(e => e.vert)
@@ -51,62 +55,68 @@ public class ProcMathCookie : MonoBehaviour {
             }
 
             Dictionary<int, List<Vector3>> interceptTris = cutter.GetInterceptTris(allIntercepts.ToArray());
-            Debug.Log("TRACING");
-            for (int i = 0, len = l.Length; i < len; i++)
+            Debug.Log("TRACING " + allIntercepts.Count());
+
+            if (allIntercepts.Count() == 1)
             {
-                if (cutter.PointInMesh(l[i]))
+                Debug.Log("Not safe distance to original tri vert to make cut");
+            }
+            else {
+                for (int i = 0, len = l.Length; i < len; i++)
                 {
-                    continue;
-                }
-
-                for (int j = 0; j< cuts[i].Count(); j++)                
-                {
-                    Vector3 intercept = cuts[i][j];
-                    List<int> tris = interceptTris.Where(kvp => kvp.Value.Contains(intercept)).Select(kvp => kvp.Key).ToList();
-                    if (tris.Count() == 1)
+                    if (cutter.PointInMesh(l[i]))
                     {
-                        int tri = tris[0];
-                        Vector3 thirdVert = l[(i + 2) % 3];
-                        List<Vector3> cutLine = cutter.TraceSurface(tri, thirdVert, intercept, n, interceptTris);
-                        if (cutLine.Count() > 0)
-                        {
-                            cutLine.Insert(0, intercept);
-                            for (int k = 0, kLen = cutLine.Count() - 1; k < kLen; k++)
-                            {
-                                Gizmos.DrawLine(cutLine[k], cutLine[k + 1]);
-                            }
-                            Vector3 last = cutLine.Last();
-
-                            //REMOVE INTERCEPTS THAT WE HAVE USED
-
-                            interceptTris[tri].Remove(intercept);
-
-
-                            for (int ii = 0; ii < cuts.Count(); ii++)
-                            {
-                                if (cuts[ii].Contains(last))
-                                {
-                                    cuts[ii].Remove(last);
-                                    break;
-                                }
-
-                            }
-
-                            foreach (int key in interceptTris.Keys)
-                            {
-                                if (interceptTris[key].Contains(last))
-                                {
-                                    interceptTris[key].Remove(last);
-                                    break;
-                                }
-                            }
-
-                        }
+                        continue;
                     }
-                    break;
+
+                    for (int j = 0; j < cuts[i].Count(); j++)
+                    {
+                        Vector3 intercept = cuts[i][j];
+                        List<int> tris = interceptTris.Where(kvp => kvp.Value.Contains(intercept)).Select(kvp => kvp.Key).ToList();
+                        if (tris.Count() == 1)
+                        {
+                            int tri = tris[0];
+                            Vector3 thirdVert = l[(i + 2) % 3];
+                            List<Vector3> cutLine = cutter.TraceSurface(tri, thirdVert, intercept, n, interceptTris);
+                            if (cutLine.Count() > 0)
+                            {
+                                cutLine.Insert(0, intercept);
+                                for (int k = 0, kLen = cutLine.Count() - 1; k < kLen; k++)
+                                {
+                                    Gizmos.DrawLine(cutLine[k], cutLine[k + 1]);
+                                }
+                                Vector3 last = cutLine.Last();
+
+                                //REMOVE INTERCEPTS THAT WE HAVE USED
+
+                                interceptTris[tri].Remove(intercept);
+
+
+                                for (int ii = 0; ii < cuts.Count(); ii++)
+                                {
+                                    if (cuts[ii].Contains(last))
+                                    {
+                                        cuts[ii].Remove(last);
+                                        break;
+                                    }
+
+                                }
+
+                                foreach (int key in interceptTris.Keys)
+                                {
+                                    if (interceptTris[key].Contains(last))
+                                    {
+                                        interceptTris[key].Remove(last);
+                                        break;
+                                    }
+                                }
+
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
-
     }
 }

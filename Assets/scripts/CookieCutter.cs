@@ -206,13 +206,13 @@ public class CookieCutter : MonoBehaviour {
         }
     }
 
-    public bool PointInMesh(Vector3 pt)
+    public bool PointInMesh(Vector3 pt, float proximityThreshold=0.0001f)
     {
         //TODO: Only supports convex meshes
 
         for (int i=0; i<myTrisCount; i++)
         {
-            if (Vector3.Dot(pt - myTriCenters[i], myTriNormals[i]) > 0)
+            if (Vector3.Dot(pt - myTriCenters[i], myTriNormals[i]) > proximityThreshold)
             {
                 return false;
             }
@@ -431,11 +431,13 @@ public class CookieCutter : MonoBehaviour {
                 if (traceLine.Count() >= searchDepth)
                 {
                     Debug.LogWarning("Aborted trace because reached search depth");
+                    traceLine.Clear();
                     return traceLine;
                 }
             }
         }
 
+        traceLine.Clear();
         Debug.Log("Found strange line that started in " + orginalIntercept);
         return traceLine;
     }
