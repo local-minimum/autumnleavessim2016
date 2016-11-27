@@ -530,11 +530,11 @@ public class CookieCutter : MonoBehaviour {
         }*/
 
         Gizmos.color = Color.cyan;
-        for (int i=0; i<myTrisCount; i++)        
+        for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
         {
-            Vector3 vertA = myVerts[myTris[i * 3]];
-            Vector3 vertB = myVerts[myTris[i * 3 + 1]];
-            Vector3 vertC = myVerts[myTris[i * 3 + 2]];
+            Vector3 vertA = myVerts[myTris[v]];
+            Vector3 vertB = myVerts[myTris[v + 1]];
+            Vector3 vertC = myVerts[myTris[v + 2]];
 
             if (showGizmoNormals)
             {
