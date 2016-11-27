@@ -239,7 +239,7 @@ public class CookieCutter : MonoBehaviour {
         if (v0 != a && v0 != b)
         {
             return v0;
-        } else if ((v1) != a && (v1) != b)
+        } else if (v1 != a && v1 != b)
         {
             return v1;
         } else
@@ -374,18 +374,35 @@ public class CookieCutter : MonoBehaviour {
                             return traceLine;
                         }
                     }
-                    traceLine.Add(rayHit);
 
-                    tri = GetNeighbourTri(myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3], tri);
-                    if (tri != -1) {
+                    if (traceLine.Contains(rayHit))
+                    {
+                        Debug.LogError("Going back over myself");
+                        return traceLine;
+                    }
+                    else {
+                        traceLine.Add(rayHit);
+                    }
+
+                    int nextTri = GetNeighbourTri(myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3], tri);
+                    if (nextTri != -1) {
+
                         intercept = rayHit;
                         
-                        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[tri], out r))
-                        {
-                            int idThirdVert = GetMissingVert(tri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
+                        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[nextTri], out r))
+                        {                            
+                            int idThirdVert = GetMissingVert(nextTri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
                             Vector3 d3 = myVerts[idThirdVert] - intercept;
-                            r.direction = Mathf.Sign(Vector3.Dot(d3, r.direction)) * r.direction;
-
+                            float sign = Mathf.Sign(Vector3.Dot(d3, r.direction));
+                            /*Debug.Log(string.Format("{3} ({9}) -> {4} ({10}): {0} - {1}, {2} ({5}, {6}) [{7} {8}]", 
+                                myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3], idThirdVert, 
+                                tri, nextTri,
+                                r.direction, sign, 
+                                myVerts[idThirdVert], intercept,
+                                myTriNormals[tri], myTriNormals[nextTri]                                
+                                ));*/
+                            r.direction = sign * r.direction;
+                            tri = nextTri;
                         } else
                         {
                             Debug.LogError("The identified next tri didn't intercept cutting Tri");

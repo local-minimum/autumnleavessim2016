@@ -535,19 +535,37 @@ public static class ProcGenHelpers
     {
         float t1;
         float t2;
-        if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2))
+        List<KeyValuePair<int, float>> interceptTimes = new List<KeyValuePair<int, float>>();
+
+        
+        if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
         {
-            edge = 0;
-            return r.GetPoint(t2);
-        } else if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2))
-        {
-            edge = 1;
-            return r.GetPoint(t2);
-        } else if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2))
-        {
-            edge = 2;
-            return r.GetPoint(t2);
+            interceptTimes.Add(new KeyValuePair<int, float>(0, t2));
+
         }
+
+        if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
+        {
+            interceptTimes.Add(new KeyValuePair<int, float>(1, t2));
+        }
+
+        if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
+        {
+            interceptTimes.Add(new KeyValuePair<int, float>(2, t2));
+        }
+
+
+        if (interceptTimes.Count() == 1)
+        {
+            edge = interceptTimes[0].Key;
+            return r.GetPoint(interceptTimes[0].Value);
+        } else if (interceptTimes.Count() > 1)
+        {
+            KeyValuePair<int, float> furthestIntercept = interceptTimes.OrderByDescending(kvp => kvp.Value).First();
+            edge = furthestIntercept.Key;
+            return r.GetPoint(furthestIntercept.Value);
+        }
+
         edge = -1;
         return r.origin;
     }
