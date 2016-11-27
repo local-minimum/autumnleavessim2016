@@ -252,24 +252,7 @@ public class CookieCutter : MonoBehaviour {
 
                 if (ProcGenHelpers.PointInTriangle(vertA, vertB, vertC, intercept))
                 {
-                    Vector3 triNorm = myTriNormals[i];
-
-                    //Debug.Log("In Tri");                    
                     cuts.Add(intercept);
-
-                    //TODO: Make correct
-
-                    Ray r;
-                    if (ProcGenHelpers.InterceptionRay(n, (b - a).normalized, intercept, triNorm, out r))
-                    {
-                        int hitEdge;
-                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
-                        if (hitEdge != -1)
-                        {
-                            Debug.Log(GetNeighbourTri(myTris[v + hitEdge], myTris[v + hitEdge + 1], i));
-                            cuts.Add(rayHit);
-                        }
-                    }
 
                 }
             }
@@ -277,6 +260,44 @@ public class CookieCutter : MonoBehaviour {
         }
 
         return cuts;
+    }
+
+    public List<Vector3> TraceSurface(int tri, Vector3 direction, Vector3 intercept, Vector3 n, Vector3[] otherIntercepts)
+    {
+        List<Vector3> traceLine = new List<Vector3>();
+        //Debug.Log("In Tri");                    
+
+        //TODO: Make correct
+
+        Ray r;
+        if (ProcGenHelpers.InterceptionRay(n, direction, intercept, myTriNormals[tri], out r))
+        {
+            while (tri >= 0) {
+                int v = tri * 3;
+                Vector3 vertA = myVerts[myTris[v]];
+                Vector3 vertB = myVerts[myTris[v + 1]];
+                Vector3 vertC = myVerts[myTris[v + 2]];
+
+                int hitEdge;
+                Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
+                if (hitEdge == -1)
+                {
+                    tri = -1;
+                } else
+                {
+                    traceLine.Add(rayHit);
+
+                    tri = GetNeighbourTri(myTris[v + hitEdge], myTris[v + hitEdge + 1], tri);
+                    if (tri != -1) {
+                        intercept = rayHit;
+                        //TODO: Bend ray using not used point in tri
+                    }
+                }
+
+            }
+        }
+
+        return traceLine;
     }
 
     public void CutDough(Mesh dough, MeshFilter mFilt)

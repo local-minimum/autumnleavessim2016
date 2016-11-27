@@ -33,10 +33,10 @@ public class ProcMathCookie : MonoBehaviour {
                 for (int j=0, k=cuts.Count; j< k; j++)
                 {
                     Gizmos.DrawSphere(cuts[j], gizmoSize);
-                    if (j > 0 && j % 2 == 1)
+                    /*if (j > 0 && j % 2 == 1)
                     {
                         Gizmos.DrawLine(cuts[j - 1], cuts[j]);
-                    }
+                    }*/
                 }
                 
             }
