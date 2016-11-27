@@ -51,9 +51,14 @@ public class ProcMathCookie : MonoBehaviour {
             }
 
             Dictionary<int, List<Vector3>> interceptTris = cutter.GetInterceptTris(allIntercepts.ToArray());
-
+            Debug.Log("TRACING");
             for (int i = 0, len = l.Length; i < len; i++)
             {
+                if (cutter.PointInMesh(l[i]))
+                {
+                    continue;
+                }
+
                 for (int j = 0; j< cuts[i].Count(); j++)                
                 {
                     Vector3 intercept = cuts[i][j];
@@ -98,6 +103,7 @@ public class ProcMathCookie : MonoBehaviour {
 
                         }
                     }
+                    break;
                 }
             }
         }

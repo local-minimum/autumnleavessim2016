@@ -206,6 +206,20 @@ public class CookieCutter : MonoBehaviour {
         }
     }
 
+    public bool PointInMesh(Vector3 pt)
+    {
+        //TODO: Only supports convex meshes
+
+        for (int i=0; i<myTrisCount; i++)
+        {
+            if (Vector3.Dot(pt - myTriCenters[i], myTriNormals[i]) > 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     int GetNeighbourTri(int idVertLineA, int idVertLineB, int curTri)
     {
         for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
@@ -336,7 +350,8 @@ public class CookieCutter : MonoBehaviour {
     public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f, int searchDepth=10)
     {
         List<Vector3> traceLine = new List<Vector3>();
-                         
+        Vector3 orginalIntercept = intercept;
+                      
         Ray r;
         if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[tri], out r))
         {
@@ -353,6 +368,7 @@ public class CookieCutter : MonoBehaviour {
                 Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
                 if (hitEdge == -1)
                 {
+                    traceLine.Clear();
                     Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1})!", intercept, traceLine.Count(), tri));
                     tri = -1;
                 } else
@@ -360,7 +376,7 @@ public class CookieCutter : MonoBehaviour {
                     if (allIntercepts.Keys.Contains(tri))
                     {
                         List<Vector3> hitIntercepts = allIntercepts[tri]
-                            .Where(v1 => v1 != intercept)
+                            .Where(v1 => Vector3.SqrMagnitude(v1 - orginalIntercept) > proximityOfInterceptThreshold)
                             .Select(v2 => new {
                                 vert = v2,
                                 dist = ProcGenHelpers.GetMinDist(v2, intercept, rayHit)})
@@ -370,6 +386,7 @@ public class CookieCutter : MonoBehaviour {
 
                         if (hitIntercepts.Count > 0)
                         {
+                            Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
                             traceLine.Add(hitIntercepts[0]);
                             return traceLine;
                         }
@@ -419,6 +436,7 @@ public class CookieCutter : MonoBehaviour {
             }
         }
 
+        Debug.Log("Found strange line that started in " + orginalIntercept);
         return traceLine;
     }
 
