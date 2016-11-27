@@ -211,6 +211,24 @@ public class CookieCutter : MonoBehaviour {
         return -1;
     }
 
+    public int GetMissingVert(int tri, int a, int b)
+    {
+        int v = tri * 3;
+        int v0 = myTris[v];
+        int v1 = myTris[v + 1];
+        
+        if (v0 != a && v0 != b)
+        {
+            return v0;
+        } else if ((v1) != a && (v1) != b)
+        {
+            return v1;
+        } else
+        {
+            return myTris[v + 2];
+        }
+    }
+
     public void Cut()
     {
         Debug.Log("Attempting cuts");
@@ -260,13 +278,46 @@ public class CookieCutter : MonoBehaviour {
         return cuts;
     }
 
-    public List<Vector3> TraceSurface(int tri, Vector3 direction, Vector3 intercept, Vector3 n, Vector3[] otherIntercepts)
+    public Dictionary<int, List<Vector3>> GetInterceptTris(Vector3[] intercepts, float proximityToPlaneThreshold=0.001f)
+    {
+        Dictionary<int, List<Vector3>> interceptTris = new Dictionary<int, List<Vector3>>();
+
+        for (int idIntercept = 0; idIntercept < intercepts.Length; idIntercept++)
+        {
+            Vector3 pt = intercepts[idIntercept];
+
+            for (int idTri = 0, idVert = 0; idTri < myTrisCount; idTri++, idVert += 3)
+            {
+
+                Plane p = new Plane(myTriNormals[idTri], myTriCenters[idTri]);
+                if (Mathf.Abs(p.GetDistanceToPoint(pt)) < proximityToPlaneThreshold)
+                {
+                    Vector3 vertA = myVerts[myTris[idVert]];
+                    Vector3 vertB = myVerts[myTris[idVert + 1]];
+                    Vector3 vertC = myVerts[myTris[idVert + 2]];
+
+                    if (ProcGenHelpers.PointInTriangle(vertA, vertB, vertC, pt))
+                    {
+                        if (!interceptTris.Keys.Contains(idTri))
+                        {
+                            interceptTris[idTri] = new List<Vector3>();
+                        }
+                        interceptTris[idTri].Add(pt);
+                        break;
+                    }
+                }
+            }
+
+        }
+
+        return interceptTris;
+
+    }
+
+    public List<Vector3> TraceSurface(int tri, Vector3 direction, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f)
     {
         List<Vector3> traceLine = new List<Vector3>();
-        //Debug.Log("In Tri");                    
-
-        //TODO: Make correct
-
+                         
         Ray r;
         if (ProcGenHelpers.InterceptionRay(n, direction, intercept, myTriNormals[tri], out r))
         {
@@ -275,20 +326,48 @@ public class CookieCutter : MonoBehaviour {
                 Vector3 vertA = myVerts[myTris[v]];
                 Vector3 vertB = myVerts[myTris[v + 1]];
                 Vector3 vertC = myVerts[myTris[v + 2]];
-
+       
                 int hitEdge;
                 Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
                 if (hitEdge == -1)
                 {
+                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle!", intercept));
                     tri = -1;
                 } else
                 {
+                    if (allIntercepts.Keys.Contains(tri))
+                    {
+                        List<Vector3> hitIntercepts = allIntercepts[tri]
+                            .Where(v1 => v1 != intercept)
+                            .Select(v2 => new {
+                                vert = v2,
+                                dist = ProcGenHelpers.GetMinDist(v2, intercept, rayHit)})
+                            .Where(e => e.dist < proximityOfInterceptThreshold)
+                            //TODO: Potentially order by proximity to intercept
+                            .Select(e => e.vert).ToList();
+
+                        if (hitIntercepts.Count > 0)
+                        {
+                            traceLine.Add(hitIntercepts[0]);
+                            return traceLine;
+                        }
+                    }
                     traceLine.Add(rayHit);
 
-                    tri = GetNeighbourTri(myTris[v + hitEdge], myTris[v + hitEdge + 1], tri);
+                    tri = GetNeighbourTri(myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3], tri);
                     if (tri != -1) {
                         intercept = rayHit;
-                        //TODO: Bend ray using not used point in tri
+                        
+                        if (ProcGenHelpers.InterceptionRay(n, -myTriNormals[tri], intercept, myTriNormals[tri], out r))
+                        {
+                            int thirdVert = GetMissingVert(tri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
+                            Vector3 d3 = myVerts[thirdVert] - intercept;
+                            r.direction = Mathf.Sign(Vector3.Dot(d3, r.direction)) * r.direction;
+
+                        } else
+                        {
+                            Debug.LogError("The identified next tri didn't intercept cutting Tri");
+                        }
                     }
                 }
 
