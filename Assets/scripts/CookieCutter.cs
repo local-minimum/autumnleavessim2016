@@ -253,10 +253,8 @@ public class CookieCutter : MonoBehaviour {
                 if (ProcGenHelpers.PointInTriangle(vertA, vertB, vertC, intercept))
                 {
                     cuts.Add(intercept);
-
                 }
             }
-            i++;
         }
 
         return cuts;
