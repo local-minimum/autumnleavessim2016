@@ -21,6 +21,10 @@ public class ProcMathCookie : MonoBehaviour {
         Gizmos.color = Color.red;
         if (drawing)
         {
+
+            //TODO: Should be in cutter in future
+            cutter.RecalculateMeshlike();
+
             Vector3[] l = line.Line.ToArray();
             Vector3 n = Vector3.Cross(l[1] - l[0], l[2] - l[0]).normalized;
             for (int i=0, len = l.Length; i<len; i++)

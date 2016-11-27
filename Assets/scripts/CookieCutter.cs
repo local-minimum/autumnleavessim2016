@@ -108,7 +108,7 @@ public class CookieCutter : MonoBehaviour {
     List<Vector3> myTriCenters = new List<Vector3>();
     List<Vector3> myTriNormals = new List<Vector3>();
 
-    public void RecalculateMeshish()
+    public void RecalculateMeshlike()
     {
 
         Vector3 pt = transform.position;
@@ -214,9 +214,6 @@ public class CookieCutter : MonoBehaviour {
 
         Vector3 intercept = Vector3.zero;
 
-        //TODO: Should be elsewhere
-        RecalculateMeshish();
-
         for (int i = 0; i<myTrisCount; i++)       
         {
             Vector3 vertA = myVerts[myTris[i * 3]];
@@ -241,8 +238,9 @@ public class CookieCutter : MonoBehaviour {
                     Ray r;
                     if (ProcGenHelpers.InterceptionRay(n, (b - a).normalized, intercept, triNorm, out r))
                     {
-                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r);
-                        if (Vector3.SqrMagnitude(rayHit - intercept) > Mathf.Epsilon)
+                        int hitEdge;
+                        Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
+                        if (hitEdge != -1)
                         {
                             cuts.Add(rayHit);
                         }

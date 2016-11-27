@@ -518,20 +518,24 @@ public static class ProcGenHelpers
         return true;
     }
 
-    public static Vector3 RayHitEdge(Vector3 a, Vector3 b, Vector3 c, Ray r, float proximity=0.001f)
+    public static Vector3 RayHitEdge(Vector3 a, Vector3 b, Vector3 c, Ray r, out int edge, float proximity = 0.001f)
     {
         float t1;
         float t2;
         if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2))
         {
+            edge = 0;
             return r.GetPoint(t2);
         } else if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2))
         {
+            edge = 1;
             return r.GetPoint(t2);
         } else if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2))
         {
+            edge = 2;
             return r.GetPoint(t2);
         }
+        edge = -1;
         return r.origin;
     }
 }
