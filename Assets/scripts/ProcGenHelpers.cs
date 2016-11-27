@@ -518,6 +518,19 @@ public static class ProcGenHelpers
         return true;
     }
 
+    public static bool InterceptionRay(Vector3 normA, Vector3 intercept, Vector3 normB, out Ray r)
+    {
+        //Parallell stuff!
+        Vector3 u = Vector3.Cross(normB, normA);
+        if (u.sqrMagnitude < Mathf.Epsilon)
+        {
+            r = new Ray();
+            return false;
+        }
+        r = new Ray(intercept, u.normalized);
+        return true;
+    }
+
     public static Vector3 RayHitEdge(Vector3 a, Vector3 b, Vector3 c, Ray r, out int edge, float proximity = 0.001f)
     {
         float t1;

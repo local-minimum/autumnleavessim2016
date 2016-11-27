@@ -2,6 +2,25 @@
 using System.Collections.Generic;
 using System.Linq;
 
+public struct CutIntercept
+{
+    public int idCutterTri;
+    public Ray cuttingRay;
+
+    public CutIntercept(int idCutterTri, Ray cuttingRay)
+    {
+        this.idCutterTri = idCutterTri;
+        this.cuttingRay = new Ray(cuttingRay.origin, cuttingRay.direction);
+    }
+
+    public CutIntercept(int idCutterTri, Vector3 intercept, Vector3 direction)
+    {
+        this.idCutterTri = idCutterTri;
+        this.cuttingRay = new Ray(intercept, direction);
+    }
+}
+
+
 public class CookieCutter : MonoBehaviour {
 
     [SerializeField]
@@ -250,7 +269,7 @@ public class CookieCutter : MonoBehaviour {
     List<Vector3> verts = new List<Vector3>();
     Transform doughTransform = null;
 
-    public List<Vector3> CutsLineAt(Vector3 a, Vector3 b, Vector3 n)
+    public List<Vector3> GetLineCutIntercepts(Vector3 a, Vector3 b, Vector3 n)
     {
         List<Vector3> cuts = new List<Vector3>();
 
@@ -314,14 +333,17 @@ public class CookieCutter : MonoBehaviour {
 
     }
 
-    public List<Vector3> TraceSurface(int tri, Vector3 direction, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f)
+    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f, int searchDepth=10)
     {
         List<Vector3> traceLine = new List<Vector3>();
                          
         Ray r;
-        if (ProcGenHelpers.InterceptionRay(n, direction, intercept, myTriNormals[tri], out r))
+        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[tri], out r))
         {
+            r.direction = Mathf.Sign(Vector3.Dot(thirdVert - intercept, r.direction)) * r.direction;
+
             while (tri >= 0) {
+
                 int v = tri * 3;
                 Vector3 vertA = myVerts[myTris[v]];
                 Vector3 vertB = myVerts[myTris[v + 1]];
@@ -331,7 +353,7 @@ public class CookieCutter : MonoBehaviour {
                 Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
                 if (hitEdge == -1)
                 {
-                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle!", intercept));
+                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1})!", intercept, traceLine.Count(), tri));
                     tri = -1;
                 } else
                 {
@@ -358,19 +380,25 @@ public class CookieCutter : MonoBehaviour {
                     if (tri != -1) {
                         intercept = rayHit;
                         
-                        if (ProcGenHelpers.InterceptionRay(n, -myTriNormals[tri], intercept, myTriNormals[tri], out r))
+                        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[tri], out r))
                         {
-                            int thirdVert = GetMissingVert(tri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
-                            Vector3 d3 = myVerts[thirdVert] - intercept;
+                            int idThirdVert = GetMissingVert(tri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
+                            Vector3 d3 = myVerts[idThirdVert] - intercept;
                             r.direction = Mathf.Sign(Vector3.Dot(d3, r.direction)) * r.direction;
 
                         } else
                         {
                             Debug.LogError("The identified next tri didn't intercept cutting Tri");
+                            tri = -1;
                         }
                     }
                 }
 
+                if (traceLine.Count() >= searchDepth)
+                {
+                    Debug.LogWarning("Aborted trace because reached search depth");
+                    return traceLine;
+                }
             }
         }
 
