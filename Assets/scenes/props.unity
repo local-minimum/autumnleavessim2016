@@ -842,7 +842,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gizmoSize: 0.1
-  showing: 1
+  showing: 0
   lineColor: {r: 1, g: 0, b: 1, a: 1}
   markIndex: 0
 --- !u!4 &1066090161

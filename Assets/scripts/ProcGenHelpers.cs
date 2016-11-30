@@ -57,12 +57,29 @@ public static class ProcGenHelpers
         return Vector3.Distance(pt, projection);
     }
 
-    public static bool PointInsideSegment(Vector3 a, Vector3 b, Vector3 pt)
+    public static int GetClosestSegment(Vector3[] poly, Vector3 pt)
+    {
+        int closest = -1;
+        float minDist = 0;
+
+        for (int i = 0, l = poly.Length; i < l; i++)
+        {
+            float dist = GetMinDist(pt, poly[i], poly[(i + 1) % l]);
+            if (closest < 0 || dist < minDist)
+            {
+                closest = i;
+                minDist = dist;
+            }
+        }
+        return closest;
+    }
+
+    public static bool PointInsideSegmentXZ(Vector3 a, Vector3 b, Vector3 pt)
     {
         return Sign(CrossXZ(a - pt, b - pt)) == 0 && pt.x < Mathf.Max(a.x, b.x) && pt.x > Mathf.Min(a.x, b.x) && pt.z < Mathf.Max(a.z, b.z) && pt.z > Mathf.Min(a.z, b.z);
     }
 
-    public static bool PointOnSegment(Vector3 a, Vector3 b, Vector3 pt)
+    public static bool PointOnSegmentXZ(Vector3 a, Vector3 b, Vector3 pt)
     {
         return Sign(CrossXZ(a - pt, b - pt)) == 0 &&
             pt.x <= (Mathf.Max(a.x, b.x) + proximitySqThreshold) &&
@@ -115,7 +132,7 @@ public static class ProcGenHelpers
             else if (aP1P2Q1 == 0 && aP1P2Q2 == 0 && aQ1Q2P1 == 0 && aQ1Q2P2 == 0)
             {
                 //Debug.Log("Inline point");
-                if (PointInsideSegment(q1, q2, p1) || PointInsideSegment(q1, q2, p2) || PointInsideSegment(p1, p2, q1) || PointInsideSegment(p1, p2, q2))
+                if (PointInsideSegmentXZ(q1, q2, p1) || PointInsideSegmentXZ(q1, q2, p2) || PointInsideSegmentXZ(p1, p2, q1) || PointInsideSegmentXZ(p1, p2, q2))
                 {
                     //Debug.Log(string.Format("Linear intercept {0} ({1} {2} {3}), {4} ({5} {6} {7})", PointInsideSegment(q1, q2, p1), q1, q2, p1, PointInsideSegment(q1, q2, p2), q1, q2, p2));
                     index = i;
@@ -178,7 +195,7 @@ public static class ProcGenHelpers
         {
             Vector3 q1 = line[i];
             Vector3 q2 = line[(i + 1) % l];
-            if (source == q1 || source == q2 || PointOnSegment(q1, q2, source))
+            if (source == q1 || source == q2 || PointOnSegmentXZ(q1, q2, source))
             {
                 //Not interested in source on line
                 continue;
@@ -272,17 +289,17 @@ public static class ProcGenHelpers
 
         int l = wall.Count;
 
-        if (PointOnSegment(a, b, wall[(l + start - 1) % l])) {
+        if (PointOnSegmentXZ(a, b, wall[(l + start - 1) % l])) {
             return true;
-        } else if (PointOnSegment(a, b, wall[(start + 1) % l]))
+        } else if (PointOnSegmentXZ(a, b, wall[(start + 1) % l]))
         {
             return true;
         }
-        else if (PointOnSegment(a, b, wall[(l + end - 1) % l]))
+        else if (PointOnSegmentXZ(a, b, wall[(l + end - 1) % l]))
         {
             return true;
         }
-        else if (PointOnSegment(a, b, wall[(end + 1) % l]))
+        else if (PointOnSegmentXZ(a, b, wall[(end + 1) % l]))
         {
             return true;
         }

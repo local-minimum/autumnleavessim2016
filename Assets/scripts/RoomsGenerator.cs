@@ -303,7 +303,7 @@ public class RoomsGenerator : MonoBehaviour {
                         for (int i = 0, l = perimeter.Count; i < l; i++)
                         {
                             int j = (i + 1) % l;
-                            if (ProcGenHelpers.PointOnSegment(perimeter[i], perimeter[j], ptB))
+                            if (ProcGenHelpers.PointOnSegmentXZ(perimeter[i], perimeter[j], ptB))
                             {
                                 perimeter.Insert(i + 1, ptB);
                                 Debug.Log("Inserted perim to perim");
