@@ -585,4 +585,45 @@ public static class ProcGenHelpers
         edge = -1;
         return r.origin;
     }
+
+    static bool IsConcave(Vector3 cur, Vector3 next, Vector3 prev, Vector3 norm)
+    {
+        return Sign(Vector3.Dot(Vector3.Cross(next - cur, prev - cur), norm)) == -1;
+    }
+
+    public static List<int> PolyToTriangles(List<Vector3> poly, Vector3 norm, int start)
+    {
+        List<int> tris = new List<int>();
+
+        int i = 0;
+        int l = poly.Count();
+        int lastTri = 0;
+        int[] counts = new int[l];
+        int prev = 0;
+        int next = 1;      
+        while (i < l)
+        {
+            if (i != prev  && IsConcave(poly[i], poly[next], poly[prev], norm))
+            {
+                tris.Add(prev + start);
+                tris.Add(i + start);
+                tris.Add(prev - 1 + start);
+
+                counts[prev - 1]++;
+                counts[prev] += 2;
+                counts[i] ++;
+
+                prev--;
+                lastTri = i;
+
+            } else
+            {
+                prev = i;
+                i++;
+                next = (i + 1) % l;
+            }
+        }
+        
+        return tris;
+    }
 }

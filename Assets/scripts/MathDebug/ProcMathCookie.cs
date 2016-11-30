@@ -51,7 +51,7 @@ public class ProcMathCookie : MonoBehaviour {
             }
 
             Dictionary<int, List<Vector3>> interceptTris = cutter.GetInterceptTris(allIntercepts.ToArray());
-            Debug.Log("TRACING " + allIntercepts.Count());
+            //Debug.Log("TRACING " + allIntercepts.Count());
             int curSubPath = 0;
             subPaths.Clear();
 
@@ -67,12 +67,12 @@ public class ProcMathCookie : MonoBehaviour {
                 while (corners.Count() > 0 || keepTrying)
                 {
                     bool walkingSubPath = false;
-                    Debug.Log(string.Format("Current sub path {0}, {1} known", curSubPath, subPaths.Count()));
+                    //Debug.Log(string.Format("Current sub path {0}, {1} known", curSubPath, subPaths.Count()));
                     if (cutter.PointInMesh(l[curCorner]) || curSubPath >= subPaths.Count())
                     {
                         if (corners.Count() > 0)
                         {
-                            Debug.Log(corners.Count() + " corners remaining");
+                            //Debug.Log(corners.Count() + " corners remaining");
                             if (subPaths.Count() == 0 || subPaths[subPaths.Count() - 1].Count() > 0)
                             {
                                 subPaths.Add(new List<Vector3>());
@@ -83,13 +83,13 @@ public class ProcMathCookie : MonoBehaviour {
 
                         } else
                         {
-                            Debug.Log("Out of corners");
+                            //Debug.Log("Out of corners");
                             keepTrying = false;
                         }
                         continue;
                     }
 
-                    Debug.Log(string.Format("Adding corner {0} to path {1}", curCorner, curSubPath));
+                    //Debug.Log(string.Format("Adding corner {0} to path {1}", curCorner, curSubPath));
                     cornersInCurSubPath.Add(curCorner);
                     subPaths[curSubPath].Add(l[curCorner]);
                     
@@ -127,10 +127,10 @@ public class ProcMathCookie : MonoBehaviour {
                                     }
                                     else {
                                         nextEdge = (nextEdge + 1) % l.Length;
-                                        Debug.Log(nextEdge);
+                                        //Debug.Log(nextEdge);
                                         if (cornersInCurSubPath.Contains(nextEdge))
                                         {
-                                            Debug.Log(string.Format("Closing {0} SubPath with corner {1}", curSubPath, curCorner));
+                                            //Debug.Log(string.Format("Closing {0} SubPath with corner {1}", curSubPath, curCorner));
                                             curSubPath++;
                                         }
                                         else
@@ -142,7 +142,7 @@ public class ProcMathCookie : MonoBehaviour {
                                             }
                                             else
                                             {
-                                                Debug.Log(string.Format("Next edge {0} is not current corner {1} for sub-path {2}", nextEdge, curCorner, curSubPath));
+                                                //Debug.Log(string.Format("Next edge {0} is not current corner {1} for sub-path {2}", nextEdge, curCorner, curSubPath));
                                             }
                                             curCorner = nextEdge;
                                         }
@@ -174,7 +174,7 @@ public class ProcMathCookie : MonoBehaviour {
                 }
             }
 
-            Debug.Log(subPaths.Count());
+            //Debug.Log(subPaths.Count());
             Gizmos.color = Color.red;
             for (int subP = 0; subP < subPaths.Count(); subP++)
             {
