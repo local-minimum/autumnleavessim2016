@@ -57,12 +57,12 @@ public static class ProcGenHelpers
         return Vector3.Distance(pt, projection);
     }
 
-    public static int GetClosestSegment(Vector3[] poly, Vector3 pt)
+    public static int GetClosestSegment(List<Vector3> poly, Vector3 pt)
     {
         int closest = -1;
         float minDist = 0;
 
-        for (int i = 0, l = poly.Length; i < l; i++)
+        for (int i = 0, l = poly.Count(); i < l; i++)
         {
             float dist = GetMinDist(pt, poly[i], poly[(i + 1) % l]);
             if (closest < 0 || dist < minDist)

@@ -265,12 +265,17 @@ public class CookieCutter : MonoBehaviour {
     public void Cut()
     {
         Debug.Log("Attempting cuts");
-
+        bool first = true;
         foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize) / 2f, transform.rotation, collisionLayers)) 
         {
             MeshFilter mFilt = col.GetComponent<MeshFilter>();
             if (mFilt != null)
             {
+                if (first)
+                {
+                    RecalculateMeshlike();
+                    first = false;
+                }
                 CutDough(mFilt.sharedMesh, mFilt);                
             }
             
@@ -463,6 +468,142 @@ public class CookieCutter : MonoBehaviour {
                 .ToList();            
         }
         return cuts;
+    }
+
+    public List<List<Vector3>> GetSubPaths(Vector3[] verts, int[] tris, int start, Vector3 normal, Dictionary<int, List<Vector3>> cuts, List<Vector3> allIntercepts, int len = 3)
+    {
+        List<List<Vector3>> subPaths = new List<List<Vector3>>();
+
+        if (allIntercepts.Count() == 1)
+        {
+            Debug.Log("Not safe distance to original tri vert to make cut");
+            return subPaths;            
+        }
+
+        int curSubPath = 0;
+        Dictionary<int, List<Vector3>> interceptTris = GetInterceptTris(allIntercepts.ToArray());
+        List<KeyValuePair<int, int>> triCorners = new List<KeyValuePair<int, int>>();
+        List<Vector3> triVerts = new List<Vector3>();
+        for (int i=start, end=start + len, j=0; i< end; i++, j++)
+        {
+            triVerts.Add(verts[tris[i]]);
+            triCorners.Add(new KeyValuePair<int, int>(j, tris[i]));
+        }
+
+        List<int> cornersInCurSubPath = new List<int>();
+        int curCorner = triCorners[0].Value;
+        int triCurCornerIndex = triCorners[0].Key;
+        bool keepTrying = true;
+        while (triCorners.Count() > 0 || keepTrying)
+        {
+            bool walkingSubPath = false;
+            //Debug.Log(string.Format("Current sub path {0}, {1} known", curSubPath, subPaths.Count()));
+            if (PointInMesh(verts[curCorner]) || curSubPath >= subPaths.Count())
+            {
+                if (triCorners.Count() > 0)
+                {
+                    //Debug.Log(corners.Count() + " corners remaining");
+                    if (subPaths.Count() == 0 || subPaths[subPaths.Count() - 1].Count() > 0)
+                    {
+                        subPaths.Add(new List<Vector3>());
+                    }
+                    curCorner = triCorners[0].Value;
+                    triCurCornerIndex = triCorners[0].Key;
+                    triCorners.RemoveAt(0);
+                    cornersInCurSubPath.Clear();
+
+                }
+                else
+                {
+                    //Debug.Log("Out of corners");
+                    keepTrying = false;
+                }
+                continue;
+            }
+
+            //Debug.Log(string.Format("Adding corner {0} to path {1}", curCorner, curSubPath));
+            cornersInCurSubPath.Add(curCorner);
+            subPaths[curSubPath].Add(verts[curCorner]);
+
+            if (cuts[curCorner].Count() > 0)
+            {
+                Vector3 intercept = cuts[curCorner][0]; //First cut is going into cutter always
+                List<int> iTris = interceptTris.Where(kvp => kvp.Value.Contains(intercept)).Select(kvp => kvp.Key).ToList();
+                if (iTris.Count() == 1)
+                {
+                    int tri = iTris[0];
+                    Vector3 thirdVert = triVerts[(triCurCornerIndex + 2) % 3];
+                    List<Vector3> cutLine = TraceSurface(tri, thirdVert, intercept, normal, interceptTris);
+                    if (cutLine.Count() > 0)
+                    {
+                        if (cutLine.Where((v, idV) => idV < cutLine.Count() - 1).All(v => ProcGenHelpers.PointInTriangle(triVerts[0], triVerts[1], triVerts[2], v)))
+                        {
+                            cutLine.Insert(0, intercept);
+
+                            subPaths[curSubPath].AddRange(cutLine);
+
+                            walkingSubPath = true;
+
+                            int nextEdge = ProcGenHelpers.GetClosestSegment(triVerts, cutLine.Last());
+                            if (nextEdge < 0)
+                            {
+                                walkingSubPath = false;
+                                Debug.LogError("Lost track of where we are, now everything is possible. Unfortunately.");
+                            }
+                            else {
+                                nextEdge = (nextEdge + 1) % triVerts.Count();
+                                //Debug.Log(nextEdge);
+                                if (cornersInCurSubPath.Contains(nextEdge))
+                                {
+                                    //Debug.Log(string.Format("Closing {0} SubPath with corner {1}", curSubPath, curCorner));
+                                    curSubPath++;
+                                }
+                                else
+                                {
+                                    triCurCornerIndex = triCorners.Where(e=> e.Value == nextEdge).First().Key;
+                                    if (!triCorners.Remove(triCorners.Where(e => e.Value == nextEdge).First()))
+                                    {
+                                        Debug.LogWarning(string.Format("Seems like we are revisting corner #{0}, this should not have happened.", nextEdge));
+                                    }
+                                    else
+                                    {
+                                        //Debug.Log(string.Format("Next edge {0} is not current corner {1} for sub-path {2}", nextEdge, curCorner, curSubPath));
+                                    }
+                                    curCorner = nextEdge;
+                                }
+                            }
+                        }
+                        else {
+                            Debug.LogWarning("Cutting the triangle outside triangle is bad idea.");
+                        }
+
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Empty cut");
+                    }
+                }
+                else {
+                    Debug.LogWarning("Intercept is duplicated");
+                }
+            }
+
+            if (!walkingSubPath)
+            {
+                if (triCorners.Count() > 0)
+                {
+                    curCorner = triCorners[0].Value;
+                    triCurCornerIndex = triCorners[0].Key;
+                    triCorners.RemoveAt(0);
+                }
+                else
+                {
+                    keepTrying = false;
+                }
+            }
+        }
+
+        return subPaths;
     }
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
