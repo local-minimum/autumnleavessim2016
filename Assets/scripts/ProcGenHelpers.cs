@@ -586,44 +586,62 @@ public static class ProcGenHelpers
         return r.origin;
     }
 
-    static bool IsConcave(Vector3 cur, Vector3 next, Vector3 prev, Vector3 norm)
+    static bool IsConvex(Vector3 cur, Vector3 next, Vector3 prev, Vector3 norm)
     {
-        return Sign(Vector3.Dot(Vector3.Cross(next - cur, prev - cur), norm)) == -1;
+        return Sign(Vector3.Dot(Vector3.Cross(next - cur, prev - cur), norm)) == 1;
     }
 
     public static List<int> PolyToTriangles(List<Vector3> poly, Vector3 norm, int start)
     {
         List<int> tris = new List<int>();
 
-        int i = 0;
+        int cur = 0;
         int l = poly.Count();
-        int lastTri = 0;
-        int[] counts = new int[l];
-        int prev = 0;
-        int next = 1;      
-        while (i < l)
+        
+        bool[] completed = new bool[l];
+        int prePrev = l - 2;
+        int prev = l - 1;
+        int next = (cur + 1) % l;
+        while (cur < l && prev != next)
         {
-            if (i != prev  && IsConcave(poly[i], poly[next], poly[prev], norm))
+            if (cur != prev  && !IsConvex(poly[cur], poly[next], poly[prev], norm))
             {
                 tris.Add(prev + start);
-                tris.Add(i + start);
-                tris.Add(prev - 1 + start);
-
-                counts[prev - 1]++;
-                counts[prev] += 2;
-                counts[i] ++;
-
-                prev--;
-                lastTri = i;
+                tris.Add(cur + start);
+                tris.Add(prePrev + start);
+                //Debug.Log(string.Format("{0} {1} _{2}_ {3}", prePrev, prev, cur, next));
+                completed[prev] = true;
+                if (!completed.Contains(false))
+                {
+                    break;
+                }                
+                prev = prePrev;
+                prePrev = (prePrev - 1 + l) % l;
 
             } else
             {
-                prev = i;
-                i++;
-                next = (i + 1) % l;
+                prePrev = prev;
+                prev = cur;
+                cur++;
+                if (cur == l)
+                {
+                    break;
+                }                
+                next = (cur + 1) % l;
             }
         }
-        
+        //Debug.Log(string.Join(", ", completed.Select(e => e ? "T" : "F").ToArray()));
+
+        List<int> remaining = completed.Select((e, idx) => new { completed = e, index = idx }).Where(e => !e.completed).Select(e => e.index).ToList();
+
+        while (remaining.Count() > 2)
+        {
+            tris.Add(remaining[0] + start);
+            tris.Add(remaining[1] + start);
+            tris.Add(remaining[2] + start);
+            remaining.RemoveAt(1);
+        }
+
         return tris;
     }
 }

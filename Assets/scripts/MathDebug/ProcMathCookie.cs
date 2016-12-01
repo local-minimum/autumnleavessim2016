@@ -32,14 +32,14 @@ public class ProcMathCookie : MonoBehaviour {
             cutter.RecalculateMeshlike();
 
             Vector3[] l = line.Line.ToArray();
-            Vector3 n = Vector3.Cross(l[1] - l[0], l[2] - l[0]).normalized;
+            Vector3 normal = Vector3.Cross(l[1] - l[0], l[2] - l[0]).normalized;
             for (int i = 0, len = l.Length; i < len; i++)
             {
 
                 Vector3 nextV = l[(i + 1) % len];
 
                 cuts[i] = cutter
-                    .GetLineCutIntercepts(l[i], nextV, n)
+                    .GetLineCutIntercepts(l[i], nextV, normal)
                     .Where(v => Vector3.SqrMagnitude(v - l[i]) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)                  
                     .Select(v => new { vert = v, dist = Vector3.SqrMagnitude(v - l[i]) })
                     .OrderBy(e => e.dist)
@@ -102,7 +102,7 @@ public class ProcMathCookie : MonoBehaviour {
                         {
                             int tri = tris[0];
                             Vector3 thirdVert = l[(curCorner + 2) % 3];
-                            List<Vector3> cutLine = cutter.TraceSurface(tri, thirdVert, intercept, n, interceptTris);
+                            List<Vector3> cutLine = cutter.TraceSurface(tri, thirdVert, intercept, normal, interceptTris);
                             if (cutLine.Count() > 0)
                             {
                                 if (cutLine.Where((v, idV) => idV < cutLine.Count() - 1).All(v => ProcGenHelpers.PointInTriangle(l[0], l[1], l[2], v)))
@@ -174,11 +174,22 @@ public class ProcMathCookie : MonoBehaviour {
                 }
             }
 
-            //Debug.Log(subPaths.Count());
+            //Debug.Log(subPaths.Count() + " paths");
             Gizmos.color = Color.red;
             for (int subP = 0; subP < subPaths.Count(); subP++)
             {
+                List<int> tris = ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, 0);
+                //Debug.Log(tris.Count() + " triangle points");
+                for (int idT=0, lT = tris.Count(); idT< lT; idT+=3)
+                {
+                    Gizmos.DrawLine(subPaths[subP][tris[idT]], subPaths[subP][tris[idT + 1]]);
+                    Gizmos.DrawLine(subPaths[subP][tris[idT + 1]], subPaths[subP][tris[idT + 2]]);
+                    Gizmos.DrawLine(subPaths[subP][tris[idT + 2]], subPaths[subP][tris[idT]]);
+                    Gizmos.DrawWireCube((subPaths[subP][tris[idT]] + subPaths[subP][tris[idT + 1]] + subPaths[subP][tris[idT + 2]]) / 3 , gizmoSize * Vector3.one);
 
+                }
+
+                /*
                 for (int i=0, nSub=subPaths[subP].Count(); i< nSub; i++) 
                 {
                     if (i < 3)
@@ -189,6 +200,7 @@ public class ProcMathCookie : MonoBehaviour {
                     Gizmos.color = Color.red;
                     Gizmos.DrawLine(subPaths[subP][i], subPaths[subP][(i + 1) % nSub]);
                 }
+                */
             }
 
         }
