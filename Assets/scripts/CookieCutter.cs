@@ -443,6 +443,28 @@ public class CookieCutter : MonoBehaviour {
         return traceLine;
     }
 
+    float thresholdPointToCutProximity = .001f;
+
+    public Dictionary<int, List<Vector3>> GetCuts(Vector3[] verts, int[] tris, int start, Vector3 normal, int len = 3)
+    {
+        Dictionary<int, List<Vector3>> cuts = new Dictionary<int, List<Vector3>>();
+        int end = start + len;
+        int last = end - 1;
+        for (int i = start; i < end; i++)
+        {
+            Vector3 vert = verts[tris[i]];
+            Vector3 nextV = verts[tris[(i == last) ? start : i + 1]];
+
+            cuts[i] = GetLineCutIntercepts(vert, nextV, normal)
+                .Where(v => Vector3.SqrMagnitude(v - vert) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)
+                .Select(v => new { vert = v, dist = Vector3.SqrMagnitude(v - vert) })
+                .OrderBy(e => e.dist)
+                .Select(e => e.vert)
+                .ToList();            
+        }
+        return cuts;
+    }
+
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
         doughTransform = mFilt.transform;

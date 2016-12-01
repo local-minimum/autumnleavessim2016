@@ -20,12 +20,11 @@ public class ProcMathCookie : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        float thresholdPointToCutProximity = .001f;
+        
         Gizmos.color = Color.red;
         if (drawing)
         {
 
-            Dictionary<int, List<Vector3>> cuts = new Dictionary<int, List<Vector3>>();
             List<Vector3> allIntercepts = new List<Vector3>();
 
             //TODO: Much should be in cutter in future
@@ -33,24 +32,16 @@ public class ProcMathCookie : MonoBehaviour {
 
             Vector3[] l = line.Line.ToArray();
             Vector3 normal = Vector3.Cross(l[1] - l[0], l[2] - l[0]).normalized;
-            for (int i = 0, len = l.Length; i < len; i++)
+            int[] outTriangle = new int[3] { 0, 1, 2 };
+
+            Dictionary<int, List<Vector3>> cuts = cutter.GetCuts(l, outTriangle, 0, normal);
+            foreach(List<Vector3> cutz in cuts.Values)
             {
-
-                Vector3 nextV = l[(i + 1) % len];
-
-                cuts[i] = cutter
-                    .GetLineCutIntercepts(l[i], nextV, normal)
-                    .Where(v => Vector3.SqrMagnitude(v - l[i]) > thresholdPointToCutProximity && Vector3.SqrMagnitude(v - nextV) > thresholdPointToCutProximity)                  
-                    .Select(v => new { vert = v, dist = Vector3.SqrMagnitude(v - l[i]) })
-                    .OrderBy(e => e.dist)
-                    .Select(e => e.vert)
-                    .ToList();
-
-                allIntercepts.AddRange(cuts[i]);
-
+                allIntercepts.AddRange(cutz);
             }
-
+            
             Dictionary<int, List<Vector3>> interceptTris = cutter.GetInterceptTris(allIntercepts.ToArray());
+
             //Debug.Log("TRACING " + allIntercepts.Count());
             int curSubPath = 0;
             subPaths.Clear();
@@ -189,18 +180,6 @@ public class ProcMathCookie : MonoBehaviour {
 
                 }
 
-                /*
-                for (int i=0, nSub=subPaths[subP].Count(); i< nSub; i++) 
-                {
-                    if (i < 3)
-                    {                        
-                        Gizmos.color = new Color[] { Color.red, Color.green, Color.blue }[i];
-                        Gizmos.DrawWireCube(subPaths[subP][i], Vector3.one * gizmoSize);
-                    }
-                    Gizmos.color = Color.red;
-                    Gizmos.DrawLine(subPaths[subP][i], subPaths[subP][(i + 1) % nSub]);
-                }
-                */
             }
 
         }
