@@ -644,4 +644,17 @@ public static class ProcGenHelpers
 
         return tris;
     }
+
+    public static IEnumerable<Vector2> GetProjectedUVs(Vector3[] triCorners, Vector2[] triUVs, List<Vector3> points)
+    {
+        Vector3 x = triCorners[1] - triCorners[0];
+        Vector3 y = triCorners[2] - triCorners[0];
+        Vector2 uvX = triUVs[1] - triUVs[0];
+        Vector2 uvY = triUVs[2] - triUVs[0];
+
+        for (int i=0, l=points.Count(); i< l; i++) {
+            Vector2 triPt = PlanarPoint(points[i] - triCorners[0], x, y);
+            yield return triUVs[0] + uvX * triPt.x + uvY * triPt.y;
+        }
+    }
 }

@@ -32,6 +32,9 @@ public class CookieCutter : MonoBehaviour {
     [SerializeField]
     bool showGizmoNormals = false;
 
+    [SerializeField]
+    bool showGizmos = true;
+
     IEnumerable<Vector3[]> CutterLines
     {
         get
@@ -265,6 +268,8 @@ public class CookieCutter : MonoBehaviour {
     public void Cut()
     {
         Debug.Log("Attempting cuts");
+        bool showGizmos = this.showGizmos;
+        this.showGizmos = false;
         bool first = true;
         foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize) / 2f, transform.rotation, collisionLayers)) 
         {
@@ -280,7 +285,7 @@ public class CookieCutter : MonoBehaviour {
             }
             
         }
-        
+        this.showGizmos = showGizmos;        
     }
 
     List<int> cuttingLines = new List<int>();
@@ -608,24 +613,60 @@ public class CookieCutter : MonoBehaviour {
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
+        Debug.Log("Cutting " + mFilt.gameObject);
         doughTransform = mFilt.transform;
-        cuttingLines.Clear();
 
-        verts.Clear();
-        verts.AddRange(dough.vertices);                
+        List<Vector3> allIntercepts = new List<Vector3>();
+        Vector3[] verts = dough.vertices.Select(v => doughTransform.TransformPoint(v)).ToArray();
+        int[] tris = dough.triangles;
+        Vector2[] uvs = dough.uv;
+        List<Vector3> newVerts = new List<Vector3>();
+        List<Vector2> newUVs = new List<Vector2>();
+        List<int> newTris = new List<int>();
 
-        List<Vector2> uv = new List<Vector2>();
-        uv.AddRange(dough.uv);
+        for (int triStart = 0, nTris = tris.Length; triStart < nTris; triStart += 3)
+        {
+            Vector3[] triCorners = new Vector3[3] { verts[tris[triStart]], verts[tris[triStart + 1]], verts[tris[triStart + 2]] };
+            if (triCorners.All(v => PointInMesh(v))) { 
+                continue;
+            }
+            Vector2[] triUVs = new Vector2[3] {uvs[tris[triStart]], uvs[tris[triStart + 1]], uvs[tris[triStart + 2]]};
+            Vector3 normal = Vector3.Cross(triCorners[1] - triCorners[0], triCorners[2] - triCorners[0]).normalized;
+            int[] outTriangle = new int[3] { 0, 1, 2 };
 
-        List<int> tris = new List<int>();
-        tris.AddRange(dough.triangles);
+            Dictionary<int, List<Vector3>> cuts = GetCuts(triCorners, outTriangle, 0, normal);
+            foreach (List<Vector3> cutz in cuts.Values)
+            {
+                allIntercepts.AddRange(cutz);
+            }
+
+            if (allIntercepts.Count() > 0)
+            {
+                List<List<Vector3>> subPaths = GetSubPaths(triCorners, outTriangle, 0, normal, cuts, allIntercepts);
+
+                for (int subP = 0; subP < subPaths.Count(); subP++)
+                {
+                    newTris.AddRange(ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, newVerts.Count()));
+                    newVerts.AddRange(subPaths[subP]);
+                    newUVs.AddRange(ProcGenHelpers.GetProjectedUVs(triCorners, triUVs, subPaths[subP]));
+                }
+            } else
+            {
+                //Triangle outside cutter entirely
+                newVerts.AddRange(triCorners);
+                newUVs.AddRange(triUVs);
+                for (int i = 0; i < 3; i++) {
+                    newTris.Add(newVerts.Count());
+                }
+            }
+        }
 
         Mesh cutDough = new Mesh();
         cutDough.name = dough.name + ".CCut";
 
-        cutDough.SetVertices(verts);
-        cutDough.SetUVs(0, uv);
-        cutDough.SetTriangles(tris, 0);
+        cutDough.SetVertices(newVerts.Select(v => doughTransform.InverseTransformPoint(v)).ToList());
+        cutDough.SetUVs(0, newUVs);
+        cutDough.SetTriangles(newTris, 0);
         cutDough.RecalculateBounds();
         cutDough.RecalculateNormals();
 
@@ -634,42 +675,27 @@ public class CookieCutter : MonoBehaviour {
 
     public void OnDrawGizmosSelected()
     {
-
-        /*  
-        int i = 0;
-        foreach(Vector3[] l in CutterLines)
-        {            
-            Gizmos.color = cuttingLines.Contains(i) ? Color.red : Color.cyan;
-            Gizmos.DrawLine(l[0], l[1]);
-            i++;
-        }*/
-
-        Gizmos.color = Color.cyan;
-        for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
+        if (showGizmos)
         {
-            Vector3 vertA = myVerts[myTris[v]];
-            Vector3 vertB = myVerts[myTris[v + 1]];
-            Vector3 vertC = myVerts[myTris[v + 2]];
+            RecalculateMeshlike();
+            Gizmos.color = Color.cyan;
+            for (int i = 0, v = 0; i < myTrisCount; i++, v += 3)
+            {
+                Vector3 vertA = myVerts[myTris[v]];
+                Vector3 vertB = myVerts[myTris[v + 1]];
+                Vector3 vertC = myVerts[myTris[v + 2]];
 
-            if (showGizmoNormals)
-            {
-                Vector3 center = myTriCenters[i];
-                Vector3 norm = myTriNormals[i];
-                Gizmos.DrawLine(center, center + norm * 0.3f);
+                if (showGizmoNormals)
+                {
+                    Vector3 center = myTriCenters[i];
+                    Vector3 norm = myTriNormals[i];
+                    Gizmos.DrawLine(center, center + norm * 0.3f);
+                }
+                Gizmos.DrawLine(vertA, vertB);
+                Gizmos.DrawLine(vertB, vertC);
+                Gizmos.DrawLine(vertC, vertA);
             }
-            Gizmos.DrawLine(vertA, vertB);
-            Gizmos.DrawLine(vertB, vertC);
-            Gizmos.DrawLine(vertC, vertA);
+
         }
-        /*
-        if (doughTransform != null)
-        {
-            Gizmos.color = Color.magenta;
-            for (int j = 0, l = cutRim.Count; j < l; j++)
-            {
-                Gizmos.DrawLine(doughTransform.TransformPoint(cutRim[j]), doughTransform.TransformPoint(cutRim[(j + 1) % l]));
-            }
-        }
-        */
     }
 }
