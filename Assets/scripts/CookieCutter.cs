@@ -357,16 +357,16 @@ public class CookieCutter : MonoBehaviour {
 
     }
 
-    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 n, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.001f, int searchDepth=20)
+    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 normal, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.01f, int searchDepth=20)
     {
         List<Vector3> traceLine = new List<Vector3>();
         Vector3 orginalIntercept = intercept;
-                      
+        Vector3 originalNorm = myTriNormals[tri];
         Ray r;
-        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[tri], out r))
+        if (ProcGenHelpers.InterceptionRay(normal, intercept, myTriNormals[tri], out r))
         {
             r.direction = Mathf.Sign(Vector3.Dot(thirdVert - intercept, r.direction)) * r.direction;
-
+            
             while (tri >= 0) {
 
                 int v = tri * 3;
@@ -378,11 +378,16 @@ public class CookieCutter : MonoBehaviour {
 
                 //TODO: Sensitive as edge condition in some rotations
                 Vector3 rayHit = ProcGenHelpers.RayHitEdge(vertA, vertB, vertC, r, out hitEdge);
+
                 if (hitEdge == -1)
                 {
                     traceLine.Clear();
-                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1}, normal = {3})!", intercept, traceLine.Count(), tri, n));
+                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1}, normal = {3})!", intercept, traceLine.Count(), tri, normal));
+                    Debug.Log(string.Format("{0} {1} {2} ray {3} -> ({4}, {5}, {6}) missed", vertA, vertB, vertC, r.origin, r.direction.x, r.direction.y, r.direction.z));
+                    Debug.Log(string.Format("Norm calc {0} Norm pre calc {1}, Other Norm {2}, Ray direction {3}",
+                        Vector3.Cross(vertB - vertA, vertC - vertA), originalNorm, normal, Vector3.Cross(originalNorm, normal)));
                     tri = -1;
+
                 } else
                 {
                     if (allIntercepts.Keys.Contains(tri))
@@ -398,9 +403,11 @@ public class CookieCutter : MonoBehaviour {
 
                         if (hitIntercepts.Count > 0)
                         {
-                            //Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
+                            Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
                             traceLine.Add(hitIntercepts[0]);
                             return traceLine;
+                        } else {
+                            Debug.LogWarning(string.Format("No intercept on {0}", tri));
                         }
                     }
 
@@ -410,6 +417,7 @@ public class CookieCutter : MonoBehaviour {
                         return traceLine;
                     }
                     else {
+                        Debug.Log("Hit tri edge at " + rayHit);
                         traceLine.Add(rayHit);
                     }
 
@@ -418,7 +426,7 @@ public class CookieCutter : MonoBehaviour {
 
                         intercept = rayHit;
                         
-                        if (ProcGenHelpers.InterceptionRay(n, intercept, myTriNormals[nextTri], out r))
+                        if (ProcGenHelpers.InterceptionRay(normal, intercept, myTriNormals[nextTri], out r))
                         {                            
                             int idThirdVert = GetMissingVert(nextTri, myTris[v + hitEdge], myTris[v + (hitEdge + 1) % 3]);
                             Vector3 d3 = myVerts[idThirdVert] - intercept;
@@ -432,11 +440,15 @@ public class CookieCutter : MonoBehaviour {
                                 ));*/
                             r.direction = sign * r.direction;
                             tri = nextTri;
+                            Debug.Log("Found next tri");
                         } else
                         {
                             Debug.LogError("The identified next tri didn't intercept cutting Tri");
                             tri = -1;
                         }
+                    } else
+                    {
+                        Debug.LogError("No neighbour");
                     }
                 }
 
@@ -653,13 +665,13 @@ public class CookieCutter : MonoBehaviour {
                 for (int subP = 0; subP < subPaths.Count(); subP++)
                 {
                     Debug.Log(string.Format("Creating tris on {0} for poly {1} (length {3}) of original tri {2} +1 +2", mFilt.gameObject, subP, triStart, subPaths[subP].Count()));
-                    /*newTris.AddRange(ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, newVerts.Count()));
+                    newTris.AddRange(ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, newVerts.Count()));
                     newVerts.AddRange(subPaths[subP]);
-                    newUVs.AddRange(ProcGenHelpers.GetProjectedUVs(triCorners, triUVs, subPaths[subP]));*/ 
+                    newUVs.AddRange(ProcGenHelpers.GetProjectedUVs(triCorners, triUVs, subPaths[subP])); 
                 }
             } else
             {
-                Debug.Log("Tri outside cutter entirely");
+                
                 //Triangle outside cutter entirely
                 int nVerts = newVerts.Count();
                 newVerts.AddRange(triCorners);

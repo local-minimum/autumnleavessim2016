@@ -40,6 +40,10 @@ public class ProcMathCookie : MonoBehaviour {
                 allIntercepts.AddRange(cutz);
             }
 
+            foreach(Vector3 intercept in allIntercepts)
+            {
+                Gizmos.DrawSphere(intercept, gizmoSize);
+            }
             subPaths = cutter.GetSubPaths(l, outTriangle, 0, normal, cuts, allIntercepts);
 
             //Debug.Log(subPaths.Count() + " paths");
@@ -53,8 +57,9 @@ public class ProcMathCookie : MonoBehaviour {
                     Gizmos.DrawLine(subPaths[subP][tris[idT]], subPaths[subP][tris[idT + 1]]);
                     Gizmos.DrawLine(subPaths[subP][tris[idT + 1]], subPaths[subP][tris[idT + 2]]);
                     Gizmos.DrawLine(subPaths[subP][tris[idT + 2]], subPaths[subP][tris[idT]]);
-                    Gizmos.DrawWireCube((subPaths[subP][tris[idT]] + subPaths[subP][tris[idT + 1]] + subPaths[subP][tris[idT + 2]]) / 3 , gizmoSize * Vector3.one);
-
+                    Vector3 center = (subPaths[subP][tris[idT]] + subPaths[subP][tris[idT + 1]] + subPaths[subP][tris[idT + 2]]) / 3;
+                    Gizmos.DrawWireCube(center, gizmoSize * Vector3.one);
+                    Gizmos.DrawLine(center, center + Vector3.Cross(subPaths[subP][tris[idT + 1]] - subPaths[subP][tris[idT]], subPaths[subP][tris[idT + 2]] - subPaths[subP][tris[idT]]));
                 }
 
             }
