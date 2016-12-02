@@ -277,9 +277,10 @@ public class CookieCutter : MonoBehaviour {
             if (mFilt != null)
             {
                 if (first)
-                {
+                {                    
                     RecalculateMeshlike();
                     first = false;
+                    Debug.Log("Calculated cookie cutter meshish in world space");
                 }
                 CutDough(mFilt.sharedMesh, mFilt);                
             }
@@ -380,7 +381,7 @@ public class CookieCutter : MonoBehaviour {
                 if (hitEdge == -1)
                 {
                     traceLine.Clear();
-                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1})!", intercept, traceLine.Count(), tri));
+                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1}, normal = {3})!", intercept, traceLine.Count(), tri, n));
                     tri = -1;
                 } else
                 {
@@ -608,7 +609,7 @@ public class CookieCutter : MonoBehaviour {
             }
         }
 
-        return subPaths;
+        return subPaths.Where(p => p.Count() > 0).ToList();
     }
 
     public void CutDough(Mesh dough, MeshFilter mFilt)
@@ -627,11 +628,14 @@ public class CookieCutter : MonoBehaviour {
         for (int triStart = 0, nTris = tris.Length; triStart < nTris; triStart += 3)
         {
             Vector3[] triCorners = new Vector3[3] { verts[tris[triStart]], verts[tris[triStart + 1]], verts[tris[triStart + 2]] };
-            if (triCorners.All(v => PointInMesh(v))) { 
+            if (triCorners.All(v => PointInMesh(v))) {
+                Debug.Log(string.Format("Remove tri {0} {1} {2} because entirely inside cutter", tris[triStart], tris[triStart + 1], tris[triStart + 2]));
                 continue;
             }
+
             Vector2[] triUVs = new Vector2[3] {uvs[tris[triStart]], uvs[tris[triStart + 1]], uvs[tris[triStart + 2]]};
             Vector3 normal = Vector3.Cross(triCorners[1] - triCorners[0], triCorners[2] - triCorners[0]).normalized;
+            Debug.Log(string.Format("Tri {0} {1} {2}, Normal {3}", triCorners[0], triCorners[1], triCorners[2], normal));
             int[] outTriangle = new int[3] { 0, 1, 2 };
 
             Dictionary<int, List<Vector3>> cuts = GetCuts(triCorners, outTriangle, 0, normal);
@@ -640,37 +644,48 @@ public class CookieCutter : MonoBehaviour {
                 allIntercepts.AddRange(cutz);
             }
 
+            //TODO: add stuff here to fix entirely inside
+
             if (allIntercepts.Count() > 0)
             {
                 List<List<Vector3>> subPaths = GetSubPaths(triCorners, outTriangle, 0, normal, cuts, allIntercepts);
 
                 for (int subP = 0; subP < subPaths.Count(); subP++)
                 {
-                    newTris.AddRange(ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, newVerts.Count()));
+                    Debug.Log(string.Format("Creating tris on {0} for poly {1} (length {3}) of original tri {2} +1 +2", mFilt.gameObject, subP, triStart, subPaths[subP].Count()));
+                    /*newTris.AddRange(ProcGenHelpers.PolyToTriangles(subPaths[subP], normal, newVerts.Count()));
                     newVerts.AddRange(subPaths[subP]);
-                    newUVs.AddRange(ProcGenHelpers.GetProjectedUVs(triCorners, triUVs, subPaths[subP]));
+                    newUVs.AddRange(ProcGenHelpers.GetProjectedUVs(triCorners, triUVs, subPaths[subP]));*/ 
                 }
             } else
             {
+                Debug.Log("Tri outside cutter entirely");
                 //Triangle outside cutter entirely
+                int nVerts = newVerts.Count();
                 newVerts.AddRange(triCorners);
                 newUVs.AddRange(triUVs);
                 for (int i = 0; i < 3; i++) {
-                    newTris.Add(newVerts.Count());
+                    newTris.Add(nVerts + i);
                 }
             }
         }
 
         Mesh cutDough = new Mesh();
         cutDough.name = dough.name + ".CCut";
-
+        cutDough.Clear();
         cutDough.SetVertices(newVerts.Select(v => doughTransform.InverseTransformPoint(v)).ToList());
         cutDough.SetUVs(0, newUVs);
         cutDough.SetTriangles(newTris, 0);
         cutDough.RecalculateBounds();
         cutDough.RecalculateNormals();
-
+        
         mFilt.sharedMesh = cutDough;
+
+        MeshCollider mCol = mFilt.GetComponent<MeshCollider>();
+        if (mCol && mCol.sharedMesh == dough)
+        {
+            mCol.sharedMesh = cutDough;
+        }
     }
 
     public void OnDrawGizmosSelected()
