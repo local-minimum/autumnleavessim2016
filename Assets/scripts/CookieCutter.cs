@@ -759,13 +759,14 @@ public class CookieCutter : MonoBehaviour {
                 Gizmos.DrawLine(vertC, vertA);
             }
 
+            /*
             Gizmos.color = Color.yellow;
             foreach(Ray r in rayTrain)
             {
                 Gizmos.DrawWireSphere(r.origin, 0.1f);
                 Gizmos.DrawLine(r.origin, r.GetPoint(0.2f));
             }
-            
+            */
             /*
             for (int i=0, l=outsideTriFail.Count(); i< l; i++)
             {
