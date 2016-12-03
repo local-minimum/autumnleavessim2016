@@ -289,10 +289,6 @@ public class CookieCutter : MonoBehaviour {
         this.showGizmos = showGizmos;        
     }
 
-    List<int> cuttingLines = new List<int>();
-    List<Vector3> verts = new List<Vector3>();
-    Transform doughTransform = null;
-
     public List<Vector3> GetLineCutIntercepts(Vector3 a, Vector3 b, Vector3 n)
     {
         List<Vector3> cuts = new List<Vector3>();
@@ -357,11 +353,14 @@ public class CookieCutter : MonoBehaviour {
 
     }
 
-    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 normal, Dictionary<int, List<Vector3>> allIntercepts, float proximityOfInterceptThreshold=0.01f, int searchDepth=20)
+    //List<Vector3> outsideTriFail = new List<Vector3>();
+
+    public List<Vector3> TraceSurface(int tri, Vector3 thirdVert, Vector3 intercept, Vector3 normal, Dictionary<int, List<Vector3>> allIntercepts, out List<Ray> rayTrain, float proximityOfInterceptThreshold=0.01f, int searchDepth=20)
     {
         List<Vector3> traceLine = new List<Vector3>();
         Vector3 orginalIntercept = intercept;
-        Vector3 originalNorm = myTriNormals[tri];
+        //Vector3 originalNorm = myTriNormals[tri];
+        rayTrain = new List<Ray>();
         Ray r;
         if (ProcGenHelpers.InterceptionRay(normal, intercept, myTriNormals[tri], out r))
         {
@@ -369,6 +368,7 @@ public class CookieCutter : MonoBehaviour {
             
             while (tri >= 0) {
 
+                rayTrain.Add(new Ray(r.origin, r.direction));
                 int v = tri * 3;
                 Vector3 vertA = myVerts[myTris[v]];
                 Vector3 vertB = myVerts[myTris[v + 1]];
@@ -381,15 +381,32 @@ public class CookieCutter : MonoBehaviour {
 
                 if (hitEdge == -1)
                 {
-                    traceLine.Clear();
+                    /*
+                    outsideTriFail.Clear();
+                    outsideTriFail.Add(vertA);
+                    outsideTriFail.Add(vertB);
+                    outsideTriFail.Add(vertC);
                     Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1}, normal = {3})!", intercept, traceLine.Count(), tri, normal));
                     Debug.Log(string.Format("{0} {1} {2} ray {3} -> ({4}, {5}, {6}) missed", vertA, vertB, vertC, r.origin, r.direction.x, r.direction.y, r.direction.z));
                     Debug.Log(string.Format("Norm calc {0} Norm pre calc {1}, Other Norm {2}, Ray direction {3}",
                         Vector3.Cross(vertB - vertA, vertC - vertA), originalNorm, normal, Vector3.Cross(originalNorm, normal)));
-                    tri = -1;
+                    outsideTriFail.Clear();
+                    outsideTriFail.Add(vertA);
+                    outsideTriFail.Add(vertB);
+                    outsideTriFail.Add(vertC);
+                    */
 
-                } else
+                    traceLine.Clear();
+                    tri = -1;
+                    Debug.LogError(string.Format("Intercept {0} was not in the reported triangle {2} (trace length = {1}, normal = {3})!", intercept, traceLine.Count(), tri, normal));
+                    float t1;
+                    float t2;
+                    bool val = ProcGenHelpers.LineSegmentInterceptIn3D(vertB, vertC, r, 0.01f, out t1, out t2);
+                    Debug.LogError(string.Format("t1 {0} t2 {1} dist {2} {3}, {4}", t1, t2, Vector3.Distance(vertB + (vertC - vertB).normalized * t1, r.GetPoint(t2)), val, (vertC - vertB).magnitude));
+                }
+                else
                 {
+
                     if (allIntercepts.Keys.Contains(tri))
                     {
                         List<Vector3> hitIntercepts = allIntercepts[tri]
@@ -403,12 +420,29 @@ public class CookieCutter : MonoBehaviour {
 
                         if (hitIntercepts.Count > 0)
                         {
-                            Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
+                            //Debug.Log(string.Format("Found path connecting intercepts {0} - {1}", orginalIntercept, hitIntercepts[0]));
                             traceLine.Add(hitIntercepts[0]);
                             return traceLine;
                         } else {
-                            Debug.LogWarning(string.Format("No intercept on {0}", tri));
+                            /*
+                            Debug.Log(string.Format("No close intercept on {0} ({1} - {2}), closest: {3}",
+                                tri,
+                                intercept, rayHit,
+                                allIntercepts[tri]
+                                    //.Where(v1 => Vector3.SqrMagnitude(v1 - orginalIntercept) > proximityOfInterceptThreshold)
+                                    .Select(v2 => new {
+                                        vert = v2,
+                                        dist = ProcGenHelpers.GetMinDist(v2, intercept, rayHit)
+                                    })
+                                    .OrderBy(e => e.dist)
+                                    //TODO: Potentially order by proximity to intercept
+                                    .Select(e => e.vert).FirstOrDefault().magnitude 
+                                ));
+                                */
                         }
+                    } else
+                    {
+                        //Debug.Log("No intercept in tri " + tri);
                     }
 
                     if (traceLine.Contains(rayHit))
@@ -417,7 +451,7 @@ public class CookieCutter : MonoBehaviour {
                         return traceLine;
                     }
                     else {
-                        Debug.Log("Hit tri edge at " + rayHit);
+                        //Debug.Log("Hit tri edge at " + rayHit);
                         traceLine.Add(rayHit);
                     }
 
@@ -440,7 +474,7 @@ public class CookieCutter : MonoBehaviour {
                                 ));*/
                             r.direction = sign * r.direction;
                             tri = nextTri;
-                            Debug.Log("Found next tri");
+                            //Debug.Log("Found next tri");
                         } else
                         {
                             Debug.LogError("The identified next tri didn't intercept cutting Tri");
@@ -487,6 +521,8 @@ public class CookieCutter : MonoBehaviour {
         }
         return cuts;
     }
+
+    List<Ray> rayTrain = new List<Ray>();
 
     public List<List<Vector3>> GetSubPaths(Vector3[] verts, int[] tris, int start, Vector3 normal, Dictionary<int, List<Vector3>> cuts, List<Vector3> allIntercepts, int len = 3)
     {
@@ -551,7 +587,7 @@ public class CookieCutter : MonoBehaviour {
                 {
                     int tri = iTris[0];
                     Vector3 thirdVert = triVerts[(triCurCornerIndex + 2) % 3];
-                    List<Vector3> cutLine = TraceSurface(tri, thirdVert, intercept, normal, interceptTris);
+                    List<Vector3> cutLine = TraceSurface(tri, thirdVert, intercept, normal, interceptTris, out rayTrain);
                     if (cutLine.Count() > 0)
                     {
                         if (cutLine.Where((v, idV) => idV < cutLine.Count() - 1).All(v => ProcGenHelpers.PointInTriangle(triVerts[0], triVerts[1], triVerts[2], v)))
@@ -627,7 +663,7 @@ public class CookieCutter : MonoBehaviour {
     public void CutDough(Mesh dough, MeshFilter mFilt)
     {
         Debug.Log("Cutting " + mFilt.gameObject);
-        doughTransform = mFilt.transform;
+        Transform doughTransform = mFilt.transform;
 
         List<Vector3> allIntercepts = new List<Vector3>();
         Vector3[] verts = dough.vertices.Select(v => doughTransform.TransformPoint(v)).ToArray();
@@ -723,6 +759,20 @@ public class CookieCutter : MonoBehaviour {
                 Gizmos.DrawLine(vertC, vertA);
             }
 
+            Gizmos.color = Color.yellow;
+            foreach(Ray r in rayTrain)
+            {
+                Gizmos.DrawWireSphere(r.origin, 0.1f);
+                Gizmos.DrawLine(r.origin, r.GetPoint(0.2f));
+            }
+            
+            /*
+            for (int i=0, l=outsideTriFail.Count(); i< l; i++)
+            {
+
+                Gizmos.DrawCube(outsideTriFail[i], Vector3.one * 0.05f * (i + 1));                
+                Gizmos.DrawLine(outsideTriFail[i], outsideTriFail[(i + 1) % l]);
+            }*/
         }
     }
 }

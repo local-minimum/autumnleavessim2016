@@ -527,13 +527,13 @@ public static class ProcGenHelpers
 
         Vector3 directionA = a2 - a1;
         Vector3 directionB = r.direction;
-
-        if (directionA.sqrMagnitude < Mathf.Epsilon)
+        float magnitudeA = directionA.magnitude;
+        if (magnitudeA < Mathf.Epsilon)
         {
             Debug.LogWarning("Triangle side too short");
             return false;
         }
-
+        directionA = directionA.normalized;
         if (directionB.sqrMagnitude < Mathf.Epsilon)
         {
             Debug.LogWarning("No direction on ray");
@@ -551,7 +551,7 @@ public static class ProcGenHelpers
         float denom = f2121 * f4343 - f4321 * f4321;
         if (Mathf.Abs(denom) < Mathf.Epsilon)
         {
-            Debug.LogWarning("Denominator too small");
+            //Debug.LogWarning("Denominator too small");
             return false;
         }
 
@@ -560,17 +560,21 @@ public static class ProcGenHelpers
         timeA = numer / denom;
         timeB = (f1343 + f4321 * timeA) / f4343;
 
-        if (timeA < 0 || timeA > directionA.magnitude)
+        if (timeA < 0 || timeA > magnitudeA)
         {
+            /*
             Debug.LogWarning(string.Format("Time outside triangle side {0} compared to {1}", timeA, directionA.magnitude));
+            bool para = ClosestPointsOnTwoLines(a1, directionA, r.origin, r.direction, out timeA, out timeB);
+            Debug.LogWarning(string.Format("Alt method gives t {0} and calculates points to {1} and {2}", timeA, a1 + directionA * timeA, r.GetPoint(timeB)));
+            */
             return false;
         }
         else if (timeB < 0)
         {
-            Debug.LogWarning("Negative ray time " + timeB);
+            //Debug.LogWarning("Negative ray time " + timeB);
             return false;
         }
-        Debug.Log("Valid ray time " + timeB);
+        //Debug.Log("Valid ray time " + timeB);
         return Vector3.Distance(a1 + directionA * timeA, r.GetPoint(timeB)) < proximityThreshold;
     }
 
@@ -613,25 +617,27 @@ public static class ProcGenHelpers
         float t2;
         List<KeyValuePair<int, float>> interceptTimes = new List<KeyValuePair<int, float>>();
 
-        if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2))
+        if (LineSegmentInterceptIn3D(a, b, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
         {
             interceptTimes.Add(new KeyValuePair<int, float>(0, t2));
 
         }
 
-        if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2))
+        if (LineSegmentInterceptIn3D(b, c, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
         {
             interceptTimes.Add(new KeyValuePair<int, float>(1, t2));
         }
 
-        if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2))
+        if (LineSegmentInterceptIn3D(c, a, r, proximity, out t1, out t2) && t2 > Mathf.Epsilon)
         {
             interceptTimes.Add(new KeyValuePair<int, float>(2, t2));
         }
     
         if (interceptTimes.Count() > 0)
         {
+            //Debug.Log("Multiple hits " + interceptTimes.Count());
             KeyValuePair<int, float> furthestIntercept = interceptTimes.OrderByDescending(kvp => kvp.Value).First();
+            //Debug.Log("Hit time " + furthestIntercept.Value);
             edge = furthestIntercept.Key;
             return r.GetPoint(furthestIntercept.Value);
         }
