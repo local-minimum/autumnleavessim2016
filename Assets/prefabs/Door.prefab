@@ -30,7 +30,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1000010986673144
 GameObject:
   m_ObjectHideFlags: 0
@@ -65,6 +65,22 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1000011979775300
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 4000013710377626}
+  - 114: {fileID: 114000010489738928}
+  m_Layer: 0
+  m_Name: CookieCutter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1000012230690446
 GameObject:
   m_ObjectHideFlags: 0
@@ -73,6 +89,7 @@ GameObject:
   serializedVersion: 4
   m_Component:
   - 4: {fileID: 4000013684956404}
+  - 54: {fileID: 54000013805974452}
   m_Layer: 0
   m_Name: Door
   m_TagString: Untagged
@@ -165,8 +182,22 @@ Transform:
   - {fileID: 4000013615857918}
   - {fileID: 4000013179900086}
   - {fileID: 4000012405831658}
+  - {fileID: 4000013710377626}
   m_Father: {fileID: 0}
   m_RootOrder: 0
+--- !u!4 &4000013710377626
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000011979775300}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 1.236, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+  m_Children: []
+  m_Father: {fileID: 4000013684956404}
+  m_RootOrder: 4
 --- !u!23 &23000010167311692
 MeshRenderer:
   m_ObjectHideFlags: 1
@@ -326,17 +357,32 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!54 &54000013805974452
+Rigidbody:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000012230690446}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!59 &59000014142244448
 HingeJoint:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000010467292106}
-  m_ConnectedBody: {fileID: 0}
+  m_ConnectedBody: {fileID: 54000013805974452}
   m_Anchor: {x: 0, y: 0.59999996, z: 0}
   m_Axis: {x: 0, y: 0, z: 1}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.5499989, y: 0.91999996, z: 3.9511642}
+  m_ConnectedAnchor: {x: -0.5499989, y: -0.000000059604645, z: 3.9511642}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -382,3 +428,20 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 0.17969762, y: 1, z: 2.506106}
   m_Center: {x: 0, y: -0.08, z: 1.2912412}
+--- !u!114 &114000010489738928
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000011979775300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe51a7026ad4f6a41b684a19eee6c196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 512
+  boxSize: {x: 1.35, y: 2.75, z: 0.5}
+  showGizmoNormals: 0
+  showGizmos: 1

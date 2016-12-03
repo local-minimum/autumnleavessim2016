@@ -12,6 +12,9 @@ public class DoorBuilder : MonoBehaviour {
     [SerializeField]
     float minSqDistanceBetweenDoors = 10f;
 
+    [SerializeField]
+    LayerMask doorLayers;
+
     void OnEnable()
     {
         PlayerController.Instance.OnModRayActivation += Player_OnModRayActivation;
@@ -24,6 +27,12 @@ public class DoorBuilder : MonoBehaviour {
 
     private void Player_OnModRayActivation(RaycastHit hit)
     {
+        if (doorLayers != (doorLayers | (1 << hit.transform.gameObject.layer)))
+        {
+            return;
+
+        }
+
         Vector3 localPos = transform.InverseTransformPoint(hit.point);
         localPos.y = doorSpawnY;
 
@@ -41,5 +50,15 @@ public class DoorBuilder : MonoBehaviour {
         door.transform.rotation = Quaternion.LookRotation(ProcGenHelpers.Get90CCW(hit.normal), Vector3.up);
 
         door.transform.localPosition = localPos;
+
+        door.GetComponentInChildren<CookieCutter>().Cut(hit.transform.GetComponent<MeshFilter>());
+
+        for (int i = 0, l = door.transform.childCount; i < l; i++)
+        {
+            if (!door.transform.GetChild(i).gameObject.activeInHierarchy)
+            {
+                door.transform.GetChild(i).gameObject.SetActive(true);
+            }
+        }
     }
 }

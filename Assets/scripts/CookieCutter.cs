@@ -266,13 +266,13 @@ public class CookieCutter : MonoBehaviour {
     }
 
     public void Cut()
-    {
-        Debug.Log("Attempting cuts");
+    {        
         bool showGizmos = this.showGizmos;
         this.showGizmos = false;
         bool first = true;
         foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize) / 2f, transform.rotation, collisionLayers)) 
         {
+            Debug.Log("Collider " + col);
             MeshFilter mFilt = col.GetComponent<MeshFilter>();
             if (mFilt != null)
             {
@@ -287,6 +287,16 @@ public class CookieCutter : MonoBehaviour {
             
         }
         this.showGizmos = showGizmos;        
+    }
+
+    public void Cut(MeshFilter mFilt)
+    {
+        bool showGizmos = this.showGizmos;
+        this.showGizmos = false;
+        RecalculateMeshlike();
+        CutDough(mFilt.sharedMesh, mFilt);
+        this.showGizmos = showGizmos;
+
     }
 
     public List<Vector3> GetLineCutIntercepts(Vector3 a, Vector3 b, Vector3 n)
