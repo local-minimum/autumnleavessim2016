@@ -211,15 +211,28 @@ public class PlayerController : MonoBehaviour {
     {
         if (canWalk)
         {
-            Vector3 newEuler = new Vector3(-Input.GetAxis("LookVertical") * headVertSensitivity, Input.GetAxis("LookHorizontal") * headHorSensitivity) * Time.deltaTime + head.localEulerAngles;
-            newEuler.x = ClampAngleNegPos(newEuler.x, -10, 40);
-            newEuler.y = ClampAngleNegPos(newEuler.y, -20, 20);
+            float strifeImpulse = Input.GetAxis("Rotate");
+            if (Mathf.Abs(strifeImpulse) > 0.02f)
+            {
+                rb.velocity += transform.right * strifeImpulse * walkFactor * Time.deltaTime;
+                float m2 = rb.velocity.sqrMagnitude;
+                if (m2 > maxWalkSq)
+                {
+                    rb.velocity = rb.velocity.normalized * Mathf.Sqrt(Mathf.Lerp(maxWalkSq, m2, walkCapF));
+                }
+            }
+
+            Vector3 newEuler = new Vector3(-Input.GetAxis("LookVertical") * headVertSensitivity, Input.GetAxis("LookHorizontal") * headHorSensitivity) * Time.deltaTime + transform.localEulerAngles;
             newEuler.z = 0f;
-            head.localEulerAngles = newEuler;
+            newEuler.x = ClampAngleNegPos(newEuler.x, -10, 40);
+            transform.localEulerAngles = newEuler;
 
             float walkImpulse = Input.GetAxis("Walk");
             if (Mathf.Abs(walkImpulse) > 0.02f)
             {
+
+                head.localEulerAngles = Vector3.Lerp(head.localEulerAngles, Vector3.zero, 1 - Time.deltaTime * 2f);
+
                 rb.velocity += transform.forward * walkImpulse * walkFactor * Time.deltaTime;
                 float m2 = rb.velocity.sqrMagnitude;
                 if (m2 > maxWalkSq)
@@ -228,6 +241,12 @@ public class PlayerController : MonoBehaviour {
                 }
             } else
             {
+                newEuler = new Vector3(-Input.GetAxis("LookVertical") * headVertSensitivity, Input.GetAxis("LookHorizontal") * headHorSensitivity) * Time.deltaTime + head.localEulerAngles;
+                newEuler.x = ClampAngleNegPos(newEuler.x, -10, 40);
+                newEuler.y = ClampAngleNegPos(newEuler.y, -20, 20);
+                newEuler.z = 0f;
+                head.localEulerAngles = newEuler;
+
                 float m = rb.velocity.magnitude;
                 if (m < 0.1f)
                 {
@@ -237,11 +256,7 @@ public class PlayerController : MonoBehaviour {
                     rb.velocity = rb.velocity.normalized * m * Mathf.Clamp01(1 - velocityDecay * Time.deltaTime);
                 }
             }
-            Vector3 roto = transform.localEulerAngles;
-            roto.y += Input.GetAxis("Rotate") * rotationSensitivity;
-            roto.z = 0;
-            roto.x = 0;
-            transform.localEulerAngles = roto;
+
         }
     }
 

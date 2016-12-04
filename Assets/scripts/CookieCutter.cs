@@ -270,7 +270,10 @@ public class CookieCutter : MonoBehaviour {
         bool showGizmos = this.showGizmos;
         this.showGizmos = false;
         bool first = true;
-        foreach (Collider col in Physics.OverlapBox(transform.position, transform.TransformDirection(boxSize) / 2f, transform.rotation, collisionLayers)) 
+        Debug.Log("Looking to cut");
+        Collider myCol = GetComponent<Collider>();
+        float radius = Vector3.Magnitude(new Vector3(transform.lossyScale.x * boxSize.x, transform.lossyScale.y * boxSize.y, transform.lossyScale.z * boxSize.z)) / 2f;
+        foreach (Collider col in Physics.OverlapSphere(transform.position, radius, collisionLayers)) 
         {
             Debug.Log("Collider " + col);
             MeshFilter mFilt = col.GetComponent<MeshFilter>();
@@ -768,7 +771,7 @@ public class CookieCutter : MonoBehaviour {
                 Gizmos.DrawLine(vertB, vertC);
                 Gizmos.DrawLine(vertC, vertA);
             }
-
+            Gizmos.DrawWireSphere(transform.position, Vector3.Magnitude(new Vector3(transform.lossyScale.x * boxSize.x, transform.lossyScale.y * boxSize.y, transform.lossyScale.z * boxSize.z)) /2f);
             /*
             Gizmos.color = Color.yellow;
             foreach(Ray r in rayTrain)

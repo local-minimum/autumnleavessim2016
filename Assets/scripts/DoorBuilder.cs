@@ -51,7 +51,7 @@ public class DoorBuilder : MonoBehaviour {
 
         door.transform.localPosition = localPos;
 
-        door.GetComponentInChildren<CookieCutter>().Cut(hit.transform.GetComponent<MeshFilter>());
+        door.GetComponentInChildren<CookieCutter>().Cut();
 
         for (int i = 0, l = door.transform.childCount; i < l; i++)
         {
